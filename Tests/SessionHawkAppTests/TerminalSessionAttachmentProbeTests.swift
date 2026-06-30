@@ -24,7 +24,7 @@ struct TerminalSessionAttachmentProbeTests {
         let updates = probe.attachmentStates(
             for: [older, newer],
             ghosttyAvailability: .available(
-                [.init(sessionID: "ghostty-1", workingDirectory: "/tmp/worktree", title: "codex ~/tmp/worktree")],
+                [.init(sessionID: "ghostty-1", workingDirectory: "/tmp/worktree", title: "agent ~/tmp/worktree")],
                 appIsRunning: true
             ),
             terminalAvailability: .available([] as [TerminalSessionAttachmentProbe.TerminalTabSnapshot], appIsRunning: false),
@@ -44,13 +44,13 @@ struct TerminalSessionAttachmentProbeTests {
             updatedAt: now.addingTimeInterval(-30),
             phase: .running,
             terminalSessionID: "ghostty-stale",
-            paneTitle: "codex ~/tmp/worktree"
+            paneTitle: "agent ~/tmp/worktree"
         )
 
         let updates = probe.attachmentStates(
             for: [session],
             ghosttyAvailability: .available(
-                [.init(sessionID: "ghostty-active", workingDirectory: "/tmp/worktree", title: "codex ~/tmp/worktree")],
+                [.init(sessionID: "ghostty-active", workingDirectory: "/tmp/worktree", title: "agent ~/tmp/worktree")],
                 appIsRunning: true
             ),
             terminalAvailability: .available([] as [TerminalSessionAttachmentProbe.TerminalTabSnapshot], appIsRunning: false),
@@ -116,7 +116,7 @@ struct TerminalSessionAttachmentProbeTests {
         )
         let rehomed = AgentSession(
             id: "rehomed",
-            title: "Codex · claude-research",
+            title: "Claude · claude-research",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -126,7 +126,7 @@ struct TerminalSessionAttachmentProbeTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "workspace-main",
-                paneTitle: "codex ~/tmp/workspace-main",
+                paneTitle: "agent ~/tmp/workspace-main",
                 workingDirectory: "/tmp/workspace-main",
                 terminalSessionID: "ghostty-1"
             )
@@ -136,8 +136,8 @@ struct TerminalSessionAttachmentProbeTests {
             for: [primary, rehomed],
             ghosttyAvailability: .available(
                 [
-                    .init(sessionID: "ghostty-1", workingDirectory: "/tmp/workspace-main", title: "codex ~/tmp/workspace-main"),
-                    .init(sessionID: "ghostty-2", workingDirectory: "/tmp/claude-research", title: "codex ~/tmp/claude-research"),
+                    .init(sessionID: "ghostty-1", workingDirectory: "/tmp/workspace-main", title: "agent ~/tmp/workspace-main"),
+                    .init(sessionID: "ghostty-2", workingDirectory: "/tmp/claude-research", title: "agent ~/tmp/claude-research"),
                 ],
                 appIsRunning: true
             ),
@@ -219,7 +219,7 @@ struct TerminalSessionAttachmentProbeTests {
     }
 
     @Test
-    func unavailableGhosttyProbeStillAttachesActiveCompletedCodexSession() {
+    func unavailableGhosttyProbeStillAttachesActiveCompletedSessionMatchedBySessionID() {
         let now = Date(timeIntervalSince1970: 1_000)
         let probe = TerminalSessionAttachmentProbe()
         let session = ghosttySession(
@@ -634,14 +634,14 @@ struct TerminalSessionAttachmentProbeTests {
     }
 
     @Test
-    func claudeSessionIDPrefixInGhosttyTitleBeatsSameDirectoryCodexSession() {
+    func claudeSessionIDPrefixInGhosttyTitleBeatsSameDirectorySecondClaudeSession() {
         let now = Date(timeIntervalSince1970: 1_000)
         let probe = TerminalSessionAttachmentProbe()
-        let codexSession = ghosttySession(
-            id: "codex-session",
+        let secondClaudeSession = ghosttySession(
+            id: "second-claude-session",
             updatedAt: now,
             phase: .running,
-            terminalSessionID: "ghostty-codex",
+            terminalSessionID: "ghostty-secondary",
             workingDirectory: "/tmp/workspace-main"
         )
         let claudeSession = AgentSession(
@@ -666,23 +666,23 @@ struct TerminalSessionAttachmentProbeTests {
         )
 
         let resolutions = probe.sessionResolutions(
-            for: [codexSession, claudeSession],
+            for: [secondClaudeSession, claudeSession],
             ghosttyAvailability: .available(
                 [
-                    .init(sessionID: "ghostty-codex", workingDirectory: "/tmp/workspace-main", title: "codex ~/tmp/workspace-main"),
+                    .init(sessionID: "ghostty-secondary", workingDirectory: "/tmp/workspace-main", title: "agent ~/tmp/workspace-main"),
                     .init(sessionID: "ghostty-claude", workingDirectory: "/tmp/workspace-main", title: "workspace-main · hi · e45d5e87-66d0-4f"),
                 ],
                 appIsRunning: true
             ),
             terminalAvailability: .available([] as [TerminalSessionAttachmentProbe.TerminalTabSnapshot], appIsRunning: false),
             activeProcesses: [
-                .init(tool: .claudeCode, sessionID: "codex-session", workingDirectory: "/tmp/workspace-main", terminalTTY: "/dev/ttys000"),
+                .init(tool: .claudeCode, sessionID: "second-claude-session", workingDirectory: "/tmp/workspace-main", terminalTTY: "/dev/ttys000"),
                 .init(tool: .claudeCode, sessionID: nil, workingDirectory: "/tmp/workspace-main", terminalTTY: "/dev/ttys002"),
             ],
             now: now
         )
 
-        #expect(resolutions["codex-session"]?.attachmentState == .attached)
+        #expect(resolutions["second-claude-session"]?.attachmentState == .attached)
         #expect(resolutions["e45d5e87-66d0-4f67-8399-6ebc02f3d453"]?.attachmentState == .attached)
         #expect(resolutions["e45d5e87-66d0-4f67-8399-6ebc02f3d453"]?.correctedJumpTarget?.terminalSessionID == "ghostty-claude")
         #expect(resolutions["e45d5e87-66d0-4f67-8399-6ebc02f3d453"]?.correctedJumpTarget?.paneTitle == "workspace-main · hi · e45d5e87-66d0-4f")
@@ -692,8 +692,8 @@ struct TerminalSessionAttachmentProbeTests {
     func claudePrefixClaimOverridesMisbindingRecordedGhosttySessionID() {
         let now = Date(timeIntervalSince1970: 1_000)
         let probe = TerminalSessionAttachmentProbe()
-        let misboundCodexSession = ghosttySession(
-            id: "misbound-codex",
+        let misboundSecondSession = ghosttySession(
+            id: "misbound-second",
             updatedAt: now,
             phase: .running,
             terminalSessionID: "ghostty-claude",
@@ -722,17 +722,17 @@ struct TerminalSessionAttachmentProbeTests {
         )
 
         let resolutions = probe.sessionResolutions(
-            for: [misboundCodexSession, claudeSession],
+            for: [misboundSecondSession, claudeSession],
             ghosttyAvailability: .available(
                 [
                     .init(sessionID: "ghostty-claude", workingDirectory: "/tmp/workspace-main", title: "workspace-main · hi · e45d5e87-66d0-4f"),
-                    .init(sessionID: "ghostty-codex", workingDirectory: "/tmp/workspace-main", title: "claude ~/tmp/workspace-main"),
+                    .init(sessionID: "ghostty-secondary", workingDirectory: "/tmp/workspace-main", title: "claude ~/tmp/workspace-main"),
                 ],
                 appIsRunning: true
             ),
             terminalAvailability: .available([] as [TerminalSessionAttachmentProbe.TerminalTabSnapshot], appIsRunning: false),
             activeProcesses: [
-                .init(tool: .claudeCode, sessionID: "misbound-codex", workingDirectory: "/tmp/workspace-main", terminalTTY: "/dev/ttys001"),
+                .init(tool: .claudeCode, sessionID: "misbound-second", workingDirectory: "/tmp/workspace-main", terminalTTY: "/dev/ttys001"),
                 .init(tool: .claudeCode, sessionID: nil, workingDirectory: "/tmp/workspace-main", terminalTTY: "/dev/ttys002"),
             ],
             now: now
@@ -740,8 +740,8 @@ struct TerminalSessionAttachmentProbeTests {
 
         #expect(resolutions["e45d5e87-66d0-4f67-8399-6ebc02f3d453"]?.attachmentState == .attached)
         #expect(resolutions["e45d5e87-66d0-4f67-8399-6ebc02f3d453"]?.correctedJumpTarget?.terminalSessionID == "ghostty-claude")
-        #expect(resolutions["misbound-codex"]?.attachmentState == .attached)
-        #expect(resolutions["misbound-codex"]?.correctedJumpTarget?.terminalSessionID == "ghostty-codex")
+        #expect(resolutions["misbound-second"]?.attachmentState == .attached)
+        #expect(resolutions["misbound-second"]?.correctedJumpTarget?.terminalSessionID == "ghostty-secondary")
     }
 
     @Test
@@ -762,7 +762,7 @@ struct TerminalSessionAttachmentProbeTests {
         let resolutions = probe.sessionResolutions(
             for: [session],
             ghosttyAvailability: .available(
-                [.init(sessionID: "ghostty-codex", workingDirectory: "/tmp/workspace-main", title: "claude ~/tmp/workspace-main")],
+                [.init(sessionID: "ghostty-secondary", workingDirectory: "/tmp/workspace-main", title: "claude ~/tmp/workspace-main")],
                 appIsRunning: true
             ),
             terminalAvailability: .available([] as [TerminalSessionAttachmentProbe.TerminalTabSnapshot], appIsRunning: false),
@@ -773,7 +773,7 @@ struct TerminalSessionAttachmentProbeTests {
         )
 
         #expect(resolutions["active-no-jump-target"]?.attachmentState == .attached)
-        #expect(resolutions["active-no-jump-target"]?.correctedJumpTarget?.terminalSessionID == "ghostty-codex")
+        #expect(resolutions["active-no-jump-target"]?.correctedJumpTarget?.terminalSessionID == "ghostty-secondary")
         #expect(resolutions["active-no-jump-target"]?.correctedJumpTarget?.workingDirectory == "/tmp/workspace-main")
     }
 
@@ -906,7 +906,7 @@ struct TerminalSessionAttachmentProbeTests {
         let probe = TerminalSessionAttachmentProbe()
         let session = AgentSession(
             id: "older-shell-session",
-            title: "Codex · workspace-main",
+            title: "Claude · workspace-main",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -916,7 +916,7 @@ struct TerminalSessionAttachmentProbeTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "workspace-main",
-                paneTitle: "codex ~/p/workspace-main",
+                paneTitle: "agent ~/p/workspace-main",
                 workingDirectory: "/tmp/workspace-main"
             )
         )
@@ -939,14 +939,14 @@ struct TerminalSessionAttachmentProbeTests {
         updatedAt: Date,
         phase: SessionPhase,
         terminalSessionID: String,
-        paneTitle: String = "codex ~/tmp/worktree",
+        paneTitle: String = "agent ~/tmp/worktree",
         workingDirectory: String = "/tmp/worktree",
         workspaceName: String = "worktree",
         claudeMetadata: ClaudeSessionMetadata? = nil
     ) -> AgentSession {
         AgentSession(
             id: id,
-            title: "Codex · \(workspaceName)",
+            title: "Claude · \(workspaceName)",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -973,7 +973,7 @@ struct TerminalSessionAttachmentProbeTests {
     ) -> AgentSession {
         AgentSession(
             id: id,
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -983,7 +983,7 @@ struct TerminalSessionAttachmentProbeTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Terminal",
                 workspaceName: "worktree",
-                paneTitle: "codex ~/tmp/worktree",
+                paneTitle: "agent ~/tmp/worktree",
                 workingDirectory: "/tmp/worktree",
                 terminalTTY: tty
             ),

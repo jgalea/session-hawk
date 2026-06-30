@@ -41,7 +41,7 @@ struct IslandSurfaceTests {
     func actionableSurfaceMatchesApprovalState() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · repo",
+            title: "Claude · repo",
             tool: .claudeCode,
             attachmentState: .attached,
             phase: .waitingForApproval,
@@ -62,7 +62,7 @@ struct IslandSurfaceTests {
     func actionableSurfaceDoesNotMatchRunningState() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · repo",
+            title: "Claude · repo",
             tool: .claudeCode,
             attachmentState: .attached,
             phase: .running,
@@ -92,7 +92,7 @@ struct IslandSurfaceTests {
         let event = AgentEvent.sessionCompleted(
             SessionCompleted(
                 sessionID: "session-3",
-                summary: "Codex turn was interrupted.",
+                summary: "Claude turn was interrupted.",
                 timestamp: .now,
                 isInterrupt: true
             )

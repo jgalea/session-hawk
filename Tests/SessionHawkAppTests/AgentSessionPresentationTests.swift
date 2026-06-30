@@ -9,7 +9,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -19,7 +19,7 @@ struct AgentSessionPresentationTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "worktree",
-                paneTitle: "codex ~/tmp/worktree",
+                paneTitle: "claude ~/tmp/worktree",
                 workingDirectory: "/tmp/worktree",
                 terminalSessionID: "ghostty-1"
             )
@@ -33,7 +33,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -43,7 +43,7 @@ struct AgentSessionPresentationTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "worktree",
-                paneTitle: "codex ~/tmp/worktree",
+                paneTitle: "claude ~/tmp/worktree",
                 workingDirectory: "/tmp/worktree",
                 terminalSessionID: "ghostty-1"
             ),
@@ -63,7 +63,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .detached,
@@ -81,7 +81,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .detached,
@@ -124,7 +124,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -142,7 +142,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -162,7 +162,7 @@ struct AgentSessionPresentationTests {
         let referenceDate = Date(timeIntervalSince1970: 10_000)
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -178,7 +178,7 @@ struct AgentSessionPresentationTests {
     func liveHeadlineUsesLatestPromptForAttachedSession() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -188,7 +188,7 @@ struct AgentSessionPresentationTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "worktree",
-                paneTitle: "codex ~/tmp/worktree",
+                paneTitle: "claude ~/tmp/worktree",
                 workingDirectory: "/tmp/worktree",
                 terminalSessionID: "ghostty-1"
             ),
@@ -208,7 +208,7 @@ struct AgentSessionPresentationTests {
     func detachedSessionHeadlineShowsInitialPrompt() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .detached,
@@ -231,7 +231,7 @@ struct AgentSessionPresentationTests {
         let now = Date.now
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -241,7 +241,7 @@ struct AgentSessionPresentationTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "worktree",
-                paneTitle: "codex ~/tmp/worktree",
+                paneTitle: "claude ~/tmp/worktree",
                 workingDirectory: "/tmp/worktree",
                 terminalSessionID: "ghostty-1"
             ),
@@ -258,10 +258,10 @@ struct AgentSessionPresentationTests {
     }
 
     @Test
-    func runningCodexSessionWithoutToolShowsThinkingBesidePrompt() {
+    func runningClaudeSessionWithoutToolShowsThinkingBesidePrompt() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -269,20 +269,20 @@ struct AgentSessionPresentationTests {
             summary: "Thinking.",
             updatedAt: Date(timeIntervalSince1970: 10_000),
             claudeMetadata: ClaudeSessionMetadata(
-                lastUserPrompt: "Align the Codex statuses."
+                lastUserPrompt: "Align the Claude statuses."
             )
         )
 
-        #expect(session.spotlightPromptLineText == "You: Align the Codex statuses.")
+        #expect(session.spotlightPromptLineText == "You: Align the Claude statuses.")
         #expect(session.spotlightActivityLineText == "Thinking")
         #expect(session.displayCurrentToolName == nil)
     }
 
     @Test
-    func runningCodexSessionKeepsWriteStdinAsInput() {
+    func runningClaudeSessionKeepsWriteStdinAsInput() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -302,10 +302,10 @@ struct AgentSessionPresentationTests {
     }
 
     @Test
-    func runningCodexSessionDisplaysWebSearchAction() {
+    func runningClaudeSessionDisplaysWebSearchAction() {
         let session = AgentSession(
             id: "session-1",
-            title: "Codex · worktree",
+            title: "Claude · worktree",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -313,13 +313,13 @@ struct AgentSessionPresentationTests {
             summary: "Running web search.",
             updatedAt: Date(timeIntervalSince1970: 10_000),
             claudeMetadata: ClaudeSessionMetadata(
-                lastUserPrompt: "Check the Codex repo.",
+                lastUserPrompt: "Check the Claude repo.",
                 currentTool: "web_search",
-                currentToolInputPreview: "Codex rollout ResponseItem"
+                currentToolInputPreview: "Claude rollout ResponseItem"
             )
         )
 
-        #expect(session.spotlightActivityLineText == "Search Codex rollout ResponseItem")
+        #expect(session.spotlightActivityLineText == "Search Claude rollout ResponseItem")
         #expect(session.spotlightStatusLabel == "Live · Search")
         #expect(session.spotlightSecondaryText == "Running Search")
         #expect(session.displayCurrentToolName == "Search")

@@ -13,7 +13,7 @@ final class ForegroundTerminalSessionProbeTests: XCTestCase {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/session-hawk",
+                paneTitle: "claude ~/session-hawk",
                 terminalSessionID: "ghostty-frontmost"
             )
         )
@@ -31,7 +31,7 @@ final class ForegroundTerminalSessionProbeTests: XCTestCase {
             jumpTarget: JumpTarget(
                 terminalApp: "Terminal",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/session-hawk",
+                paneTitle: "claude ~/session-hawk",
                 terminalTTY: "/dev/ttys001"
             )
         )
@@ -49,7 +49,7 @@ final class ForegroundTerminalSessionProbeTests: XCTestCase {
             jumpTarget: JumpTarget(
                 terminalApp: "iTerm",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/session-hawk",
+                paneTitle: "claude ~/session-hawk",
                 terminalSessionID: "tracked-session",
                 terminalTTY: "/dev/ttys002"
             )
@@ -68,7 +68,7 @@ final class ForegroundTerminalSessionProbeTests: XCTestCase {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/session-hawk",
+                paneTitle: "claude ~/session-hawk",
                 terminalSessionID: "ghostty-frontmost"
             )
         )

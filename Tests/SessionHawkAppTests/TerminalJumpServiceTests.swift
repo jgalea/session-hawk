@@ -12,7 +12,7 @@ final class TerminalJumpServiceTests: XCTestCase {
         let target = JumpTarget(
             terminalApp: "Ghostty",
             workspaceName: "session-hawk",
-            paneTitle: "codex ~/p/session-hawk",
+            paneTitle: "claude ~/p/session-hawk",
             workingDirectory: "/tmp/wangruobing/Personal/session-hawk",
             terminalSessionID: "448D7E28-24FB-46F1-9504-C252F97926C1"
         )
@@ -36,14 +36,14 @@ final class TerminalJumpServiceTests: XCTestCase {
         let target = JumpTarget(
             terminalApp: "Ghostty",
             workspaceName: "session-hawk",
-            paneTitle: "codex ~/p/session-hawk",
+            paneTitle: "claude ~/p/session-hawk",
             workingDirectory: "/tmp/wangruobing/Personal/session-hawk"
         )
 
         let script = TerminalJumpService().ghosttyJumpScript(for: target)
 
         XCTAssertTrue(script.contains("(working directory of aTerminal as text) is \"/tmp/wangruobing/Personal/session-hawk\""))
-        XCTAssertTrue(script.contains("(name of aTerminal as text) contains \"codex ~/p/session-hawk\""))
+        XCTAssertTrue(script.contains("(name of aTerminal as text) contains \"claude ~/p/session-hawk\""))
         XCTAssertTrue(script.contains("if \"\" is \"\" then"))
     }
 

@@ -97,7 +97,7 @@ struct AppModelSessionListTests {
 
         var runningLive = AgentSession(
             id: "running-live",
-            title: "Codex · session-hawk",
+            title: "Claude · session-hawk",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -107,7 +107,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/p/session-hawk",
+                paneTitle: "claude ~/p/session-hawk",
                 workingDirectory: "/tmp/session-hawk",
                 terminalSessionID: "ghostty-split-1"
             )
@@ -116,7 +116,7 @@ struct AppModelSessionListTests {
 
         var oldTurnSameSplit = AgentSession(
             id: "old-turn-same-split",
-            title: "Codex · session-hawk",
+            title: "Claude · session-hawk",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -126,7 +126,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/p/session-hawk",
+                paneTitle: "claude ~/p/session-hawk",
                 workingDirectory: "/tmp/session-hawk",
                 terminalSessionID: "ghostty-split-1"
             )
@@ -135,7 +135,7 @@ struct AppModelSessionListTests {
 
         var otherLive = AgentSession(
             id: "other-live",
-            title: "Codex · session-hawk",
+            title: "Claude · session-hawk",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -145,7 +145,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/p/session-hawk",
+                paneTitle: "claude ~/p/session-hawk",
                 workingDirectory: "/tmp/session-hawk",
                 terminalSessionID: "ghostty-split-2"
             )
@@ -172,7 +172,7 @@ struct AppModelSessionListTests {
             sessions: [
                 AgentSession(
                     id: "recovered-session",
-                    title: "Codex · session-hawk",
+                    title: "Claude · session-hawk",
                     tool: .claudeCode,
                     origin: .live,
                     attachmentState: .stale,
@@ -195,7 +195,7 @@ struct AppModelSessionListTests {
 
         var liveSession = AgentSession(
             id: "live-session",
-            title: "Codex · session-hawk",
+            title: "Claude · session-hawk",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -218,7 +218,7 @@ struct AppModelSessionListTests {
 
         var staleCompleted = AgentSession(
             id: "stale-completed",
-            title: "Codex · stale",
+            title: "Claude · stale",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -228,7 +228,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "stale",
-                paneTitle: "codex ~/stale",
+                paneTitle: "claude ~/stale",
                 workingDirectory: "/tmp/stale",
                 terminalSessionID: "ghostty-stale"
             )
@@ -237,7 +237,7 @@ struct AppModelSessionListTests {
 
         var freshCompleted = AgentSession(
             id: "fresh-completed",
-            title: "Codex · fresh",
+            title: "Claude · fresh",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -247,7 +247,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "fresh",
-                paneTitle: "codex ~/fresh",
+                paneTitle: "claude ~/fresh",
                 workingDirectory: "/tmp/fresh",
                 terminalSessionID: "ghostty-fresh"
             )
@@ -369,7 +369,7 @@ struct AppModelSessionListTests {
 
         let session = AgentSession(
             id: "live-session",
-            title: "Codex · session-hawk",
+            title: "Claude · session-hawk",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -379,7 +379,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: "session-hawk",
-                paneTitle: "codex ~/p/session-hawk",
+                paneTitle: "claude ~/p/session-hawk",
                 workingDirectory: "/tmp/session-hawk",
                 terminalSessionID: "ghostty-1"
             )
@@ -465,7 +465,7 @@ struct AppModelSessionListTests {
             sessions: [
                 AgentSession(
                     id: "recovered-session",
-                    title: "Codex · session-hawk",
+                    title: "Claude · session-hawk",
                     tool: .claudeCode,
                     origin: .live,
                     attachmentState: .stale,
@@ -502,7 +502,7 @@ struct AppModelSessionListTests {
             sessions: [
                 AgentSession(
                     id: "live-session",
-                    title: "Codex · session-hawk",
+                    title: "Claude · session-hawk",
                     tool: .claudeCode,
                     origin: .live,
                     attachmentState: .stale,
@@ -541,7 +541,7 @@ struct AppModelSessionListTests {
             sessions: [
                 AgentSession(
                     id: "recovered-session",
-                    title: "Codex · session-hawk",
+                    title: "Claude · session-hawk",
                     tool: .claudeCode,
                     origin: .live,
                     attachmentState: .stale,
@@ -583,7 +583,7 @@ struct AppModelSessionListTests {
             sessions: [
                 AgentSession(
                     id: "frontmost-session",
-                    title: "Codex · session-hawk",
+                    title: "Claude · session-hawk",
                     tool: .claudeCode,
                     origin: .live,
                     attachmentState: .attached,
@@ -632,7 +632,7 @@ struct AppModelSessionListTests {
             sessions: [
                 AgentSession(
                     id: "background-session",
-                    title: "Codex · session-hawk",
+                    title: "Claude · session-hawk",
                     tool: .claudeCode,
                     origin: .live,
                     attachmentState: .attached,
@@ -1062,7 +1062,7 @@ struct AppModelSessionListTests {
 
         var session = AgentSession(
             id: "same-session",
-            title: "Codex · proj",
+            title: "Claude · proj",
             tool: .claudeCode,
             attachmentState: .attached,
             phase: .waitingForApproval,
@@ -1122,7 +1122,7 @@ struct AppModelSessionListTests {
 
         var incomingSession = AgentSession(
             id: "incoming-session",
-            title: "Codex · incoming",
+            title: "Claude · incoming",
             tool: .claudeCode,
             attachmentState: .attached,
             phase: .running,
@@ -1247,7 +1247,7 @@ struct AppModelSessionListTests {
     private func listSession(id: String, phase: SessionPhase, updatedAt: Date) -> AgentSession {
         AgentSession(
             id: id,
-            title: "Codex · \(id)",
+            title: "Claude · \(id)",
             tool: .claudeCode,
             origin: .live,
             attachmentState: .attached,
@@ -1257,7 +1257,7 @@ struct AppModelSessionListTests {
             jumpTarget: JumpTarget(
                 terminalApp: "Ghostty",
                 workspaceName: id,
-                paneTitle: "codex ~/\(id)",
+                paneTitle: "claude ~/\(id)",
                 workingDirectory: "/tmp/\(id)",
                 terminalSessionID: "ghostty-\(id)"
             )
