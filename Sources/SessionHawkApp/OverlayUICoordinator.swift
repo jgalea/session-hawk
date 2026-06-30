@@ -248,6 +248,7 @@ final class OverlayUICoordinator {
     }
 
     func refreshOverlayPlacementIfVisible() {
+        guard isOverlayVisible else { return }
         refreshOverlayPlacement()
     }
 
