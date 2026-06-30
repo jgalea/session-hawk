@@ -1876,7 +1876,7 @@ private struct IslandSessionRow: View {
     }
 
     private func rowFillColor(for presence: IslandSessionPresence) -> Color {
-        if presentation == .notification {
+        if presentation == .notification, !allowsRowHoverHighlight {
             return Color.clear
         }
 
@@ -1905,8 +1905,12 @@ private struct IslandSessionRow: View {
         }
     }
 
+    /// Completion notification cards are click-to-jump (see `handlePrimaryTap`),
+    /// so they get the same hover highlight as session-list rows to signal
+    /// that. Approval/question notification cards keep their own dedicated
+    /// action buttons and don't need the affordance.
     private var allowsRowHoverHighlight: Bool {
-        presentation != .notification
+        presentation != .notification || session.phase == .completed
     }
 
     /// Prompt line for manually expanded inactive rows (bypasses time-based filter).

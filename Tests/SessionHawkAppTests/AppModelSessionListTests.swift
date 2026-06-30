@@ -400,6 +400,62 @@ struct AppModelSessionListTests {
         #expect(model.lastActionMessage == expected)
     }
 
+    /// Mirrors the wiring `IslandPanelView` uses for the completion
+    /// notification card: `onJump: { model.jumpToSession(session) }` is
+    /// invoked on tap with `model.activeIslandCardSession`, the same
+    /// session driving the notification surface. This exercises that exact
+    /// seam end to end (without going through SwiftUI gesture recognition,
+    /// which isn't unit-testable here) to guard the click-to-jump wiring.
+    @Test
+    func jumpToSessionFromCompletionNotificationCardClosesOverlayAndFiresJumpAction() async throws {
+        let now = Date(timeIntervalSince1970: 2_000)
+        let model = AppModel { target in
+            "Focused \(target.terminalSessionID ?? "unknown")"
+        }
+
+        let session = AgentSession(
+            id: "completed-session",
+            title: "Claude · session-hawk",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Done",
+            updatedAt: now,
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "session-hawk",
+                paneTitle: "claude ~/p/session-hawk",
+                workingDirectory: "/tmp/session-hawk",
+                terminalSessionID: "ghostty-completed"
+            )
+        )
+        model.state = SessionState(sessions: [session])
+        model.notchStatus = .opened
+        model.notchOpenReason = .notification
+        model.islandSurface = .sessionList(actionableSessionID: session.id)
+
+        // Sanity check: this is genuinely the completion notification card
+        // state the real card-tap wiring fires from.
+        #expect(model.showsNotificationCard)
+        #expect(model.activeIslandCardSession?.id == session.id)
+        #expect(model.activeIslandCardSession?.phase == .completed)
+
+        // Same call the card's tap handler makes: `onJump: { model.jumpToSession(session) }`.
+        model.jumpToSession(model.activeIslandCardSession!)
+
+        #expect(model.notchStatus == .closed)
+        #expect(model.notchOpenReason == nil)
+
+        let expected = "Focused ghostty-completed"
+        for _ in 0..<20 {
+            if model.lastActionMessage == expected { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+
+        #expect(model.lastActionMessage == expected)
+    }
+
     @Test
     func rolloutEventsDoNotPromoteRecoveredSessionsToAttachedDuringColdStart() {
         let now = Date(timeIntervalSince1970: 2_000)
