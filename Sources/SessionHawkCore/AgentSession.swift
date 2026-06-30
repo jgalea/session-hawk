@@ -88,7 +88,6 @@ public struct JumpTarget: Equatable, Codable, Sendable {
     public var terminalTTY: String?
     public var tmuxTarget: String?
     public var tmuxSocketPath: String?
-    public var warpPaneUUID: String?
 
     public init(
         terminalApp: String,
@@ -98,8 +97,7 @@ public struct JumpTarget: Equatable, Codable, Sendable {
         terminalSessionID: String? = nil,
         terminalTTY: String? = nil,
         tmuxTarget: String? = nil,
-        tmuxSocketPath: String? = nil,
-        warpPaneUUID: String? = nil
+        tmuxSocketPath: String? = nil
     ) {
         self.terminalApp = terminalApp
         self.workspaceName = workspaceName
@@ -109,7 +107,6 @@ public struct JumpTarget: Equatable, Codable, Sendable {
         self.terminalTTY = terminalTTY
         self.tmuxTarget = tmuxTarget
         self.tmuxSocketPath = tmuxSocketPath
-        self.warpPaneUUID = warpPaneUUID
     }
 }
 

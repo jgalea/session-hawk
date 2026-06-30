@@ -793,31 +793,21 @@ public final class BridgeServer: @unchecked Sendable {
     }
 
     /// Merges an incoming jumpTarget with the session's existing one so
-    /// that expensive-to-resolve fields are not silently cleared by a
-    /// later hook that failed to re-resolve them.
+    /// that an expensive-to-resolve field is not silently cleared by a
+    /// later hook that failed to re-resolve it.
     ///
-    /// Two fields fall into this category:
+    /// `terminalSessionID` is the field this guards: only SessionStart
+    /// hooks actually query Ghostty's focused-terminal locator
+    /// (subsequent hooks leave it nil to avoid stamping the wrong
+    /// terminal if the user has since switched tabs). Without
+    /// preservation, every non-start hook would overwrite a
+    /// correctly-resolved session id with nil. Preservation has been
+    /// in place since the Ghostty jump feature landed.
     ///
-    /// 1. `terminalSessionID` — only SessionStart hooks actually query
-    ///    Ghostty's focused-terminal locator (subsequent hooks leave it
-    ///    nil to avoid stamping the wrong terminal if the user has
-    ///    since switched tabs). Without preservation, every non-start
-    ///    hook would overwrite a correctly-resolved session id with
-    ///    nil. Preservation has been in place since the Ghostty jump
-    ///    feature landed.
-    ///
-    /// 2. `warpPaneUUID` — resolved via a SQLite + process-tree walk
-    ///    at hook time. Legitimate transient failures (pgrep race,
-    ///    SQLite lock contention, Warp mid-startup) make the resolver
-    ///    return nil. Without preservation, the first such transient
-    ///    failure after a successful resolve would permanently drop
-    ///    the mapping for the rest of the session, demoting precision
-    ///    jump to bare activation until the NEXT lucky hook.
-    ///
-    /// Both are "resolved fields": the hook either succeeds at
-    /// finding them or reports nil. nil does NOT mean "absence is the
-    /// ground truth" — it means "this invocation could not determine
-    /// the value, prefer the last known good one".
+    /// This is a "resolved field": the hook either succeeds at finding
+    /// it or reports nil. nil does NOT mean "absence is the ground
+    /// truth" — it means "this invocation could not determine the
+    /// value, prefer the last known good one".
     static func mergeJumpTargetPreservingExistingResolvedFields(
         incoming: JumpTarget,
         existing: JumpTarget?
@@ -827,11 +817,6 @@ public final class BridgeServer: @unchecked Sendable {
            let existingID = existing?.terminalSessionID,
            !existingID.isEmpty {
             merged.terminalSessionID = existingID
-        }
-        if merged.warpPaneUUID == nil,
-           let existingUUID = existing?.warpPaneUUID,
-           !existingUUID.isEmpty {
-            merged.warpPaneUUID = existingUUID
         }
         return merged
     }

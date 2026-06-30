@@ -419,27 +419,6 @@ struct SessionStateTests {
     }
 
     @Test
-    func jumpTargetRoundTripsWarpPaneUUIDThroughCodable() throws {
-        let target = JumpTarget(
-            terminalApp: "Warp",
-            workspaceName: "demo",
-            paneTitle: "Claude demo",
-            workingDirectory: "/tmp/demo",
-            warpPaneUUID: "D1A5DF3027E44FC080FE2656FAF2BA2E"
-        )
-        let data = try JSONEncoder().encode(target)
-        let decoded = try JSONDecoder().decode(JumpTarget.self, from: data)
-        #expect(decoded.warpPaneUUID == "D1A5DF3027E44FC080FE2656FAF2BA2E")
-
-        // And: legacy JSON without the field decodes to nil
-        let legacyJSON = """
-        {"terminalApp":"Warp","workspaceName":"demo","paneTitle":"Claude demo","workingDirectory":"/tmp/demo"}
-        """.data(using: .utf8)!
-        let legacy = try JSONDecoder().decode(JumpTarget.self, from: legacyJSON)
-        #expect(legacy.warpPaneUUID == nil)
-    }
-
-    @Test
     func firstSeenAtIsWrittenOnceAndPreservedAcrossSubsequentEvents() {
         let t0 = Date(timeIntervalSince1970: 10_000)
         var state = SessionState()

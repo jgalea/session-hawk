@@ -3,73 +3,12 @@ import Testing
 @testable import SessionHawkCore
 
 /// Pins `BridgeServer.mergeJumpTargetPreservingExistingResolvedFields`
-/// behavior on two "resolved" fields — `terminalSessionID` and
-/// `warpPaneUUID`. Both fields are determined at hook time by
-/// potentially-flaky runtime probes (AppleScript locators, SQLite
-/// reads, process-tree walks), so when a later hook fails to re-resolve
-/// them the merged jumpTarget must carry forward the previous value
-/// instead of clearing it.
+/// behavior on the one "resolved" field it guards — `terminalSessionID`.
+/// It's determined at hook time by a potentially-flaky runtime probe
+/// (the Ghostty AppleScript locator), so when a later hook fails to
+/// re-resolve it the merged jumpTarget must carry forward the previous
+/// value instead of clearing it.
 struct BridgeServerJumpTargetMergeTests {
-    @Test
-    func preservesWarpPaneUUIDWhenIncomingIsNilAndExistingHasValue() {
-        // Regression for PR #266 Codex review [P2]:
-        // When `warpPaneResolver` returns nil during a transient
-        // state (pgrep race, SQLite lock, Warp startup), the incoming
-        // jumpTarget has `warpPaneUUID = nil`. Without preservation
-        // the session's good uuid would be overwritten, permanently
-        // demoting precision jump to bare activation for the rest
-        // of the session.
-        let existing = JumpTarget(
-            terminalApp: "Warp",
-            workspaceName: "demo",
-            paneTitle: "Claude demo",
-            workingDirectory: "/tmp/demo",
-            warpPaneUUID: "D1A5DF3027E44FC080FE2656FAF2BA2E"
-        )
-        let incoming = JumpTarget(
-            terminalApp: "Warp",
-            workspaceName: "demo",
-            paneTitle: "Claude demo",
-            workingDirectory: "/tmp/demo",
-            warpPaneUUID: nil
-        )
-
-        let merged = BridgeServer.mergeJumpTargetPreservingExistingResolvedFields(
-            incoming: incoming,
-            existing: existing
-        )
-
-        #expect(merged.warpPaneUUID == "D1A5DF3027E44FC080FE2656FAF2BA2E")
-    }
-
-    @Test
-    func overwritesWarpPaneUUIDWhenIncomingHasValue() {
-        // When the incoming hook successfully re-resolves the uuid,
-        // it MUST win — the shell or pane may have moved since the
-        // last hook. Only nil-valued incoming fields are preserved.
-        let existing = JumpTarget(
-            terminalApp: "Warp",
-            workspaceName: "demo",
-            paneTitle: "Claude demo",
-            workingDirectory: "/tmp/demo",
-            warpPaneUUID: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-        )
-        let incoming = JumpTarget(
-            terminalApp: "Warp",
-            workspaceName: "demo",
-            paneTitle: "Claude demo",
-            workingDirectory: "/tmp/demo",
-            warpPaneUUID: "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-        )
-
-        let merged = BridgeServer.mergeJumpTargetPreservingExistingResolvedFields(
-            incoming: incoming,
-            existing: existing
-        )
-
-        #expect(merged.warpPaneUUID == "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-    }
-
     @Test
     func preservesTerminalSessionIDWhenIncomingIsNil() {
         // Documents the pre-existing Ghostty-session-ID preservation
@@ -101,23 +40,23 @@ struct BridgeServerJumpTargetMergeTests {
     }
 
     @Test
-    func doesNotInventValuesWhenBothSidesAreNil() {
-        // Preservation only activates when there is an existing value
-        // to carry forward. When both sides are nil, the merged field
-        // stays nil — the helper must not fabricate state.
+    func overwritesTerminalSessionIDWhenIncomingHasValue() {
+        // When the incoming hook successfully re-resolves the session
+        // id, it MUST win — the user may have switched tabs since the
+        // last hook. Only nil-valued incoming fields are preserved.
         let existing = JumpTarget(
-            terminalApp: "Warp",
+            terminalApp: "Ghostty",
             workspaceName: "demo",
             paneTitle: "Claude demo",
             workingDirectory: "/tmp/demo",
-            warpPaneUUID: nil
+            terminalSessionID: "ghostty-session-42"
         )
         let incoming = JumpTarget(
-            terminalApp: "Warp",
+            terminalApp: "Ghostty",
             workspaceName: "demo",
             paneTitle: "Claude demo",
             workingDirectory: "/tmp/demo",
-            warpPaneUUID: nil
+            terminalSessionID: "ghostty-session-99"
         )
 
         let merged = BridgeServer.mergeJumpTargetPreservingExistingResolvedFields(
@@ -125,7 +64,34 @@ struct BridgeServerJumpTargetMergeTests {
             existing: existing
         )
 
-        #expect(merged.warpPaneUUID == nil)
+        #expect(merged.terminalSessionID == "ghostty-session-99")
+    }
+
+    @Test
+    func doesNotInventValuesWhenBothSidesAreNil() {
+        // Preservation only activates when there is an existing value
+        // to carry forward. When both sides are nil, the merged field
+        // stays nil — the helper must not fabricate state.
+        let existing = JumpTarget(
+            terminalApp: "Ghostty",
+            workspaceName: "demo",
+            paneTitle: "Claude demo",
+            workingDirectory: "/tmp/demo",
+            terminalSessionID: nil
+        )
+        let incoming = JumpTarget(
+            terminalApp: "Ghostty",
+            workspaceName: "demo",
+            paneTitle: "Claude demo",
+            workingDirectory: "/tmp/demo",
+            terminalSessionID: nil
+        )
+
+        let merged = BridgeServer.mergeJumpTargetPreservingExistingResolvedFields(
+            incoming: incoming,
+            existing: existing
+        )
+
         #expect(merged.terminalSessionID == nil)
     }
 
@@ -136,11 +102,11 @@ struct BridgeServerJumpTargetMergeTests {
         // the incoming jumpTarget unchanged — there is nothing to
         // preserve.
         let incoming = JumpTarget(
-            terminalApp: "Warp",
+            terminalApp: "Ghostty",
             workspaceName: "demo",
             paneTitle: "Claude demo",
             workingDirectory: "/tmp/demo",
-            warpPaneUUID: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            terminalSessionID: "ghostty-session-7"
         )
 
         let merged = BridgeServer.mergeJumpTargetPreservingExistingResolvedFields(
@@ -148,6 +114,6 @@ struct BridgeServerJumpTargetMergeTests {
             existing: nil
         )
 
-        #expect(merged.warpPaneUUID == "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+        #expect(merged.terminalSessionID == "ghostty-session-7")
     }
 }
