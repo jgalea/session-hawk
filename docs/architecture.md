@@ -9,17 +9,17 @@ The project is a single Swift package with four targets:
 | **SessionHawkApp** | SwiftUI + AppKit shell — menu bar extra, overlay panel (notch/top-bar), settings. Entry point: `SessionHawkApp.swift` with `AppModel` as the central `@Observable` state owner. |
 | **SessionHawkCore** | Shared library — models (`AgentSession`, `AgentEvent`, `SessionState`), bridge transport (Unix socket IPC with JSON line protocol), hook models/installers, transcript discovery, session persistence/registry. |
 | **SessionHawkHooks** | Lightweight CLI executable invoked by agent hooks. Reads hook payload from stdin, forwards to app bridge via Unix socket, writes blocking JSON to stdout only when island denies a `PreToolUse`. |
-| **SessionHawkSetup** | Installer CLI for managing `~/.codex/config.toml` and `hooks.json`. |
+| **SessionHawkSetup** | Installer CLI for managing the Claude Code hook entry in `~/.claude/settings.json`. |
 
 ## Data Flow
 
-### Hook-based agents (Codex, Claude Code, and forks)
+### Hook events
 
 ```
-Agent
+Claude Code
   │  stdin: JSON payload
   ▼
-SessionHawkHooks CLI  (--source codex | --source claude | ...)
+SessionHawkHooks CLI
   │  Unix socket
   ▼
 BridgeServer → AppModel → UI
@@ -28,13 +28,7 @@ BridgeServer → AppModel → UI
 SessionHawkHooks CLI
   │  stdout: JSON directive (only when a response is needed)
   ▼
-Agent
-```
-
-### Plugin-based agents (OpenCode)
-
-```
-OpenCode → JS plugin (~/.config/opencode/plugins/) → Unix socket → BridgeServer → AppModel → UI
+Claude Code
 ```
 
 ### Session discovery (on launch)

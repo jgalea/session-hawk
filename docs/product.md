@@ -6,8 +6,8 @@ CLI coding agents are powerful, but they pull attention away from the editor and
 
 ## Target User
 
-- macOS developers using terminal-based coding agents daily
-- Users running more than one agent or more than one terminal session
+- macOS developers running Claude Code in the terminal daily
+- Users running more than one terminal session at once
 - Users who care about low latency, native behavior, and open-source transparency
 
 ## Product Principles
@@ -18,19 +18,9 @@ CLI coding agents are powerful, but they pull attention away from the editor and
 - **Terminal-native** — built to support the terminal workflow, not replace it
 - **Fail open** — if the app or bridge is unavailable, agents keep running unchanged
 
-## Supported Code Agents
+## Supported Code Agent
 
-| Agent | Status | Notes |
-|---|---|---|
-| **Claude Code** | Supported | Hook integration, JSONL session discovery, status line bridge, usage tracking |
-| **Codex** | Supported | Full hook integration (SessionStart, UserPromptSubmit, Stop), usage tracking |
-| **OpenCode** | Supported | JS plugin integration, permission/question flows, process detection |
-| **Qoder** | Supported | Claude Code fork — same hook format, config at `~/.qoder/settings.json` |
-| **Qwen Code** | Supported | Claude Code fork — same hook format, config at `~/.qwen/settings.json` |
-| **Factory** | Supported | Claude Code fork — same hook format, config at `~/.factory/settings.json` |
-| **CodeBuddy** | Supported | Claude Code fork — same hook format, config at `~/.codebuddy/settings.json` |
-| **Gemini CLI** | Supported | Hook integration (`SessionStart`, `BeforeAgent`, `AfterAgent`, `SessionEnd`, `Notification`), session tracking, terminal jump metadata, completion-card compatibility handling |
-| **Kimi CLI** | Supported | Hook integration via `~/.kimi/config.toml` `[[hooks]]` (Moonshot AI). Kimi's hook payload is byte-compatible with Claude Code, so runtime reuses the Claude decode path; a dedicated TOML installer preserves user-authored hooks |
+Session Hawk supports Claude Code only: hook integration, JSONL session discovery, status line bridge, and usage tracking.
 
 ## Supported Terminals
 

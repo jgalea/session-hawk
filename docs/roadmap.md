@@ -16,7 +16,7 @@ You can also fork your own version and modify it however you like — but PRing 
 
 | # | Area | Description | Status | Links |
 |---|------|-------------|--------|-------|
-| 1 | **Code Agent Experience** | We currently focus mainly on Claude Code and Codex — we hope to improve the experience together with the community. For other agents (OpenCode, Gemini CLI, etc.), we believe the best experience will be built by deep users of those tools — community-driven iteration welcome. | Active | — |
+| 1 | **Claude Code Experience** | Session Hawk is Claude Code only. We focus on getting that experience right rather than spreading across multiple agents. | Active | — |
 | 2 | **IDE / Plugin Jump-back** | Support jumping back to IDE or in-IDE terminal windows, or apps with integrated code agent plugins (Cursor, VSCode, GoLand, Obsidian, etc.). | Planned | [#173](https://github.com/Octane0411/open-vibe-island/issues/173), [#183](https://github.com/Octane0411/open-vibe-island/issues/183) |
 | 3 | **More Terminals** | Add support for terminal apps not yet on the supported list. If your terminal isn't supported, you're the best person to add it. | Open | — |
 | 4 | **SSH Jump-back** | We currently support detecting and notifying code agent sessions over SSH. Jump-back is harder and needs more work. | Open | — |
