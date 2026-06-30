@@ -30,7 +30,7 @@ setup_binary="$build_root/SessionHawkSetup"
 
 python3 "$brand_script"
 if [ "$skip_setup" = false ]; then
-  "$setup_binary" install --hooks-binary "$hooks_binary"
+  "$setup_binary" installClaude --hooks-binary "$hooks_binary"
 fi
 
 mkdir -p "$bundle_dir/Contents/MacOS" "$bundle_dir/Contents/Helpers" "$bundle_dir/Contents/Resources" "$bundle_dir/Contents/Frameworks"
