@@ -167,18 +167,23 @@ Setting `interrupt: true` terminates the current agent turn immediately.
 
 ## Terminal Auto-detection
 
-The hook process infers the terminal type from environment variables at runtime:
+The hook process infers the terminal type at runtime, checking multiplexers first, then `TERM_PROGRAM`, then a fallback set of per-app environment variables:
 
-| Environment variable | Inferred terminal |
+| Signal | Inferred terminal |
 |---|---|
-| `ITERM_SESSION_ID` or `LC_TERMINAL=iTerm2` | `iTerm` |
 | `CMUX_WORKSPACE_ID` or `CMUX_SOCKET_PATH` | `cmux` |
-| `GHOSTTY_RESOURCES_DIR` | `Ghostty` |
-| `WARP_IS_LOCAL_SHELL_SESSION` | `Warp` |
+| `ZELLIJ` | `Zellij` |
 | `TERM_PROGRAM=Apple_Terminal` | `Terminal` |
-| `TERM_PROGRAM=WezTerm` | `WezTerm` |
+| `TERM_PROGRAM=iTerm.app` / `iTerm2` | `iTerm` |
+| `TERM_PROGRAM` contains `ghostty` | `Ghostty` |
+| `TERM_PROGRAM=vscode` | `VS Code` (or `Cursor` if `CURSOR_TRACE_ID` is also set) |
+| `TERM_PROGRAM=vscode-insiders` | `VS Code Insiders` |
+| Fallback: `ITERM_SESSION_ID` or `LC_TERMINAL=iTerm2` | `iTerm` |
+| Fallback: `GHOSTTY_RESOURCES_DIR` | `Ghostty` |
 
-For iTerm, Terminal, and Ghostty the process additionally runs an AppleScript query to obtain the session ID, TTY, and window title — used to power the "jump back to terminal" feature. The `cmux` terminal uses `CMUX_SURFACE_ID` instead of AppleScript.
+`TERM_PROGRAM` is checked before the per-app fallback vars because those vars can leak across terminals through macOS GUI app environment inheritance (e.g. launching one terminal from inside another).
+
+For `cmux`, the terminal session ID comes from `CMUX_SURFACE_ID`. For `Zellij`, it's `ZELLIJ_PANE_ID:ZELLIJ_SESSION_NAME`. For iTerm, Terminal, and Ghostty, the process instead runs an AppleScript query against the focused window to obtain the session ID, TTY, and window title — used to power the "jump back to terminal" feature. VS Code, VS Code Insiders, and Cursor have no locator (their session/TTY/title aren't captured this way).
 
 ---
 

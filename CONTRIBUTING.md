@@ -96,9 +96,9 @@ Repository: Octane0411/open-vibe-island
 
 Session Hawk is a native macOS companion app for AI coding agents. It sits in the notch/top-bar area and monitors local agent sessions, surfaces permission requests, answers questions, and provides "jump back" to the correct terminal context. Local-first, no server dependency.
 
-**Supported agents**: Codex, Claude Code
+**Supported agent**: Claude Code only
 
-**Supported terminals**: Terminal.app, Ghostty
+**Supported terminals**: see [`docs/product.md`](docs/product.md) for the current list
 
 ### Prerequisites
 
