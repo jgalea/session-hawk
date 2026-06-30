@@ -21,14 +21,14 @@ ICNS_PATH = BRAND_ROOT / "SessionHawk.icns"
 SVG_MASTER_PATH = BRAND_ROOT / "scout-app-icon-master.svg"
 
 SCOUT_PATTERN = [
-    "..B..B..",
+    "B......B",
+    ".B....B.",
+    ".BBBBBB.",
     "..BBBB..",
-    ".BHHHHB.",
-    "BBHEHEBB",
-    ".BHHHHB.",
+    "...BB...",
     "..BBBB..",
     ".B....B.",
-    "........",
+    "B......B",
 ]
 
 APP_ICON_SPECS = [
