@@ -13,13 +13,22 @@ struct SessionHawkHooksCLI {
                 return
             }
 
+            let socketURL = BridgeSocketLocation.currentURL()
+
+            // Cheapest possible early-out: if the bridge socket isn't there, the app isn't
+            // running, so there's nothing to forward to. Skip reading/decoding stdin and any
+            // connection attempt entirely (still fail-open, just without the wasted work).
+            guard FileManager.default.fileExists(atPath: socketURL.path) else {
+                return
+            }
+
             let input = FileHandle.standardInput.readDataToEndOfFile()
             guard !input.isEmpty else {
                 return
             }
 
             let decoder = JSONDecoder()
-            let client = BridgeCommandClient(socketURL: BridgeSocketLocation.currentURL())
+            let client = BridgeCommandClient(socketURL: socketURL)
 
             let payload = try decoder
                 .decode(ClaudeHookPayload.self, from: input)
