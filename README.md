@@ -1,6 +1,6 @@
 <div align="center">
 
-# Session Hawk
+<img src="docs/images/header.png" alt="Session Hawk" width="100%">
 
 [![License](https://img.shields.io/badge/LICENSE-GPL--3.0-5C9E31?style=for-the-badge)](LICENSE)
 [![Built by](https://img.shields.io/badge/BUILT%20BY-JEAN%20GALEA-8A2BE2?style=for-the-badge)](https://jeangalea.com)
