@@ -168,23 +168,17 @@ extension AgentSession {
     }
 
     var spotlightHeadlineText: String {
+        // The session list intentionally shows only the workspace name (and
+        // branch), never the prompt/command the session is running. Prompt
+        // and activity content is reserved for the permission-approval and
+        // notification surfaces, which render it through their own lines.
         var headline = spotlightWorkspaceName
 
         if let branch = spotlightWorktreeBranch {
             headline += " (\(branch))"
         }
 
-        guard let prompt = spotlightHeadlinePromptText else {
-            return headline
-        }
-
-        return "\(headline) · \(prompt)"
-    }
-
-    var spotlightHeadlinePromptText: String? {
-        // Headline shows the initial prompt (session topic), not the latest.
-        // The latest prompt is shown separately in the "You:" line.
-        initialPromptText ?? latestPromptText
+        return headline
     }
 
     var spotlightPromptText: String? {
@@ -397,15 +391,6 @@ extension AgentSession {
             }
         let label = pieces.joined(separator: " ")
         return label.isEmpty ? toolName : label
-    }
-
-    private var initialPromptText: String? {
-        let prompt = initialUserPromptText?.trimmedForSurface
-        guard let prompt, !prompt.isEmpty else {
-            return nil
-        }
-
-        return prompt
     }
 
     private var latestPromptText: String? {

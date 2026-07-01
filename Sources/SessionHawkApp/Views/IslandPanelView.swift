@@ -57,8 +57,8 @@ extension AgentSession {
         // Base: vertical padding (22) + headline (~17) + divider rounding.
         var height: CGFloat = 40
         guard presence != .inactive else { return height }
-        if spotlightPromptLineText != nil { height += 17 }
-        if spotlightActivityLineText != nil { height += 20 }
+        // List rows no longer render the prompt ("You: …") or activity lines;
+        // only the structural subagent/task breakdowns add height.
         if let subagents = claudeMetadata?.activeSubagents, !subagents.isEmpty {
             height += 18
             height += CGFloat(subagents.count) * 18  // each subagent row (spacing 4 + text 14)
@@ -1302,7 +1302,8 @@ private struct IslandSessionRow: View {
 
     @ViewBuilder
     private func rowAuxiliaryDetails(presence: IslandSessionPresence) -> some View {
-        if !shouldShowEmbeddedDetailBody,
+        if presentation == .notification,
+           !shouldShowEmbeddedDetailBody,
            let activityLine = session.spotlightActivityLineText ?? expandedActivityLineText {
             Text(activityLine)
                 .font(.system(size: 11, weight: .medium))
@@ -1414,7 +1415,9 @@ private struct IslandSessionRow: View {
             return session.notificationHeaderPromptLineText
         }
 
-        return session.spotlightPromptLineText ?? expandedPromptLineText
+        // Session-list rows never show the prompt ("You: …") line. Prompt and
+        // activity content belongs only to the notification/permission surface.
+        return nil
     }
 
     private var summaryHeadlineText: String {
@@ -1569,7 +1572,11 @@ private struct IslandSessionRow: View {
         if session.phase == .completed {
             return isActionable && completionHasExpandedBody
         }
-        return session.phase == .running && runningDetailText != nil
+        // The running detail body is the command/activity preview ($ …). It is
+        // agent-activity content, so only the notification/permission popup
+        // shows it; session-list rows omit it. Attention (approve/answer) and
+        // completion-reply affordances above still render in the list.
+        return presentation == .notification && session.phase == .running && runningDetailText != nil
     }
 
     private var completionHasExpandedBody: Bool {
@@ -1918,12 +1925,6 @@ private struct IslandSessionRow: View {
     /// action buttons and don't need the affordance.
     private var allowsRowHoverHighlight: Bool {
         presentation != .notification || session.phase == .completed
-    }
-
-    /// Prompt line for manually expanded inactive rows (bypasses time-based filter).
-    private var expandedPromptLineText: String? {
-        guard detailOverride == true, let prompt = session.spotlightPromptText else { return nil }
-        return "You: \(prompt)"
     }
 
     /// Activity line for manually expanded inactive rows (bypasses time-based filter).

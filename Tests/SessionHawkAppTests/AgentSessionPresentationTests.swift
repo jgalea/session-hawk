@@ -199,8 +199,9 @@ struct AgentSessionPresentationTests {
             )
         )
 
-        // Headline uses initial prompt (session topic), prompt line uses latest
-        #expect(session.spotlightHeadlineText == "worktree · Start by fixing the island hover behavior.")
+        // Headline is workspace-only; the prompt is still available on the
+        // "You:" line for the notification/permission surface.
+        #expect(session.spotlightHeadlineText == "worktree")
         #expect(session.spotlightPromptLineText == "You: Now make the overlay height fit the content.")
     }
 
@@ -222,7 +223,7 @@ struct AgentSessionPresentationTests {
             )
         )
 
-        #expect(session.spotlightHeadlineText == "worktree · Start by fixing the island hover behavior.")
+        #expect(session.spotlightHeadlineText == "worktree")
         #expect(session.spotlightPromptLineText == "You: Now make the overlay height fit the content.")
     }
 
@@ -252,9 +253,39 @@ struct AgentSessionPresentationTests {
             )
         )
 
-        #expect(session.spotlightHeadlineText == "worktree · Commit the README change.")
+        #expect(session.spotlightHeadlineText == "worktree")
         #expect(session.spotlightPromptLineText == "You: Also confirm the worktree status.")
         #expect(session.notificationHeaderPromptLineText == nil)
+    }
+
+    @Test
+    func headlineNeverIncludesPromptContent() {
+        let session = AgentSession(
+            id: "session-1",
+            title: "Claude · worktree",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .running,
+            summary: "Working",
+            updatedAt: Date(timeIntervalSince1970: 10_000),
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "worktree",
+                paneTitle: "claude ~/tmp/worktree",
+                workingDirectory: "/tmp/worktree",
+                terminalSessionID: "ghostty-1"
+            ),
+            claudeMetadata: ClaudeSessionMetadata(
+                initialUserPrompt: "You are running a secret command.",
+                lastUserPrompt: "Do the thing.",
+                lastAssistantMessage: "On it."
+            )
+        )
+
+        #expect(session.spotlightHeadlineText == "worktree")
+        #expect(!session.spotlightHeadlineText.contains("·"))
+        #expect(!session.spotlightHeadlineText.contains("secret"))
     }
 
     @Test
