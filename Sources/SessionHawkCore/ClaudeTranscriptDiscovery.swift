@@ -11,6 +11,29 @@ public final class ClaudeTranscriptDiscovery: @unchecked Sendable {
             .appendingPathComponent(".claude/projects", isDirectory: true)
     }
 
+    // Claude transcript timestamps carry fractional seconds
+    // (e.g. "2026-07-01T16:51:10.112Z"). A default ISO8601DateFormatter
+    // returns nil for those, so parsing must try the fractional-seconds
+    // formatter first, then plain. Shared instances avoid re-allocating a
+    // formatter on every transcript line.
+    // ISO8601DateFormatter's date(from:) is thread-safe; nonisolated(unsafe)
+    // lets these be shared statics under Swift 6 strict concurrency.
+    private static nonisolated(unsafe) let iso8601Fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static nonisolated(unsafe) let iso8601Plain: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    static func parseTimestamp(_ text: String) -> Date? {
+        iso8601Fractional.date(from: text) ?? iso8601Plain.date(from: text)
+    }
+
     private let rootURL: URL
     private let fileManager: FileManager
     private let maxAge: TimeInterval
@@ -104,7 +127,7 @@ public final class ClaudeTranscriptDiscovery: @unchecked Sendable {
             }
 
             if let timestampText = object["timestamp"] as? String,
-               let timestamp = ISO8601DateFormatter().date(from: timestampText) {
+               let timestamp = Self.parseTimestamp(timestampText) {
                 updatedAt = timestamp
             }
 
