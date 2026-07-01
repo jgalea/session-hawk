@@ -591,7 +591,8 @@ struct IslandPanelView: View {
                     onAnswer: { model.answerQuestion(for: session.id, answer: $0) },
                     onReply: TerminalTextSender.canReply(to: session, enabled: model.completionReplyEnabled)
                         ? { model.replyToSession(session, text: $0) } : nil,
-                    onJump: { model.jumpToSession(session) }
+                    onJump: { model.jumpToSession(session) },
+                    onResume: { model.resumeSession(session) }
                 )
                 .id(notificationCardIdentity(for: session))
 
@@ -633,6 +634,7 @@ struct IslandPanelView: View {
                                 onReply: TerminalTextSender.canReply(to: session, enabled: model.completionReplyEnabled)
                                     ? { model.replyToSession(session, text: $0) } : nil,
                                 onJump: { model.jumpToSession(session) },
+                                onResume: { model.resumeSession(session) },
                                 onDismiss: session.isRemote ? { model.dismissSession(session.id) } : nil
                             )
                         }
@@ -683,6 +685,7 @@ struct IslandPanelView: View {
                         onReply: TerminalTextSender.canReply(to: session, enabled: model.completionReplyEnabled)
                             ? { model.replyToSession(session, text: $0) } : nil,
                         onJump: { model.jumpToSession(session) },
+                        onResume: { model.resumeSession(session) },
                         onDismiss: session.isRemote ? { model.dismissSession(session.id) } : nil
                     )
                 }
@@ -1177,6 +1180,7 @@ private struct IslandSessionRow: View {
     var onAnswer: ((QuestionPromptResponse) -> Void)?
     var onReply: ((String) -> Void)?
     let onJump: () -> Void
+    var onResume: (() -> Void)?
     var onDismiss: (() -> Void)?
 
     @State private var isHighlighted = false
@@ -1276,6 +1280,9 @@ private struct IslandSessionRow: View {
                 }
                 if let terminalBadge = session.spotlightTerminalBadge {
                     sideBadge(terminalBadge)
+                }
+                if showsResumeAffordance, let onResume {
+                    resumeButton(action: onResume)
                 }
                 Text(session.spotlightAgeBadge)
                     .font(.system(size: 10.5, weight: .medium, design: .monospaced))
@@ -1930,9 +1937,41 @@ private struct IslandSessionRow: View {
         return session.jumpTarget != nil ? "Ready" : "Completed"
     }
 
+    /// Whether this row should offer Resume instead of Jump: no live jump
+    /// target is available, but there's enough information (a working
+    /// directory and a session id) to relaunch `claude --resume` in the
+    /// user's preferred terminal. Never shown alongside a working jump.
+    private var showsResumeAffordance: Bool {
+        guard onResume != nil, !session.id.isEmpty else { return false }
+        let jumpUnavailable = session.jumpTarget == nil || session.jumpTarget?.terminalApp.lowercased() == "unknown"
+        let hasWorkingDirectory = session.jumpTarget?.workingDirectory?.isEmpty == false
+        return jumpUnavailable && hasWorkingDirectory
+    }
+
     private func handlePrimaryTap() {
         guard isInteractive else { return }
+        if showsResumeAffordance, let onResume {
+            onResume()
+            return
+        }
         onJump()
+    }
+
+    private func resumeButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.uturn.forward.circle.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(lang.t("island.session.resume"))
+                    .font(.system(size: 10.5, weight: .semibold))
+            }
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3.5)
+            .background(.white.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(lang.t("island.session.resume"))
     }
 
     private func detailToggleButton(isOpen: Bool) -> some View {

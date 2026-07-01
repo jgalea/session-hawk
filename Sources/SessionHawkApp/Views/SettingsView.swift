@@ -177,6 +177,15 @@ struct GeneralSettingsPane: View {
                         Text(option.title).tag(option.id)
                     }
                 }
+
+                Picker(lang.t("settings.general.preferredTerminal"), selection: Binding(
+                    get: { model.preferredTerminal },
+                    set: { model.preferredTerminal = $0 }
+                )) {
+                    ForEach(PreferredTerminal.allCases, id: \.self) { terminal in
+                        Text(terminal.displayName).tag(terminal)
+                    }
+                }
             }
 
             Section(lang.t("settings.general.behavior")) {

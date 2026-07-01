@@ -33,7 +33,6 @@ Session Hawk supports Claude Code only: hook integration, JSONL session discover
 | **WezTerm** | Full Support | Jump-back via CLI pane targeting |
 | **iTerm2** | Full Support | Jump-back with session ID / TTY matching |
 | **tmux** (multiplexer) | Full Support | Jump-back with session/window/pane targeting |
-| **Warp** | Planned | Fallback detection only |
 
 ## Features
 

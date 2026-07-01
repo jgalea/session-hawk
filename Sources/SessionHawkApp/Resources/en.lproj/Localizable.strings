@@ -18,6 +18,7 @@
 /* Settings - General */
 "settings.general.launchAtLogin" = "Launch at Login";
 "settings.general.monitor" = "Monitor";
+"settings.general.preferredTerminal" = "Preferred terminal";
 "settings.general.automatic" = "Automatic";
 "settings.general.behavior" = "Behavior";
 "settings.general.hideFullscreen" = "Hide in fullscreen";
@@ -192,6 +193,7 @@
 "island.showAll" = "Show all %lld sessions";
 "island.collapseList" = "Collapse list";
 "island.usageWaiting" = "Usage waiting";
+"island.session.resume" = "Resume";
 
 /* Island Panel - Approval */
 "approval.toolPermissionRequested" = "Tool permission requested";

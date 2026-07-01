@@ -22,6 +22,7 @@ final class AppModel {
     private static let islandCenterLabelDefaultsKey = "appearance.island.v6.centerLabel"
     private static let completionReplyEnabledDefaultsKey = "feature.completionReply.enabled"
     private static let suppressFrontmostNotificationsDefaultsKey = "app.suppressFrontmostNotifications"
+    private static let preferredTerminalDefaultsKey = "app.preferredTerminal"
     private static let legacyIslandSessionStateIndicatorDefaultsKey = "appearance.island.v8.stateIndicator"
     private static let legacyIslandSessionGroupDefaultsKey = "appearance.island.v8.sessionGroup"
     private static let legacyIslandSessionSortDefaultsKey = "appearance.island.v8.sessionSort"
@@ -178,6 +179,14 @@ final class AppModel {
         didSet {
             guard hasFinishedInit, suppressFrontmostNotifications != oldValue else { return }
             UserDefaults.standard.set(suppressFrontmostNotifications, forKey: Self.suppressFrontmostNotificationsDefaultsKey)
+        }
+    }
+    /// The terminal Session Hawk launches when it needs to open one, e.g.
+    /// resuming a recovered Claude session.
+    var preferredTerminal: PreferredTerminal = .default {
+        didSet {
+            guard hasFinishedInit, preferredTerminal != oldValue else { return }
+            UserDefaults.standard.set(preferredTerminal.rawValue, forKey: Self.preferredTerminalDefaultsKey)
         }
     }
     var launchAtLoginEnabled: Bool = false {
@@ -365,6 +374,9 @@ final class AppModel {
     private let terminalJumpAction: @Sendable (JumpTarget) throws -> String
 
     @ObservationIgnored
+    private let terminalLaunchAction: @Sendable (PreferredTerminal, String, String) throws -> String
+
+    @ObservationIgnored
     private let isNotificationSessionAlreadyFrontmost: @Sendable (AgentSession) async -> Bool
 
 
@@ -374,6 +386,9 @@ final class AppModel {
 
     @ObservationIgnored
     private var jumpTask: Task<Void, Never>?
+
+    @ObservationIgnored
+    private var resumeTask: Task<Void, Never>?
 
     @ObservationIgnored
     private var notificationPresentationTask: Task<Void, Never>?
@@ -426,23 +441,31 @@ final class AppModel {
         terminalJumpAction: @escaping @Sendable (JumpTarget) throws -> String = { target in
             try TerminalJumpService().jump(to: target)
         },
+        terminalLaunchAction: @escaping @Sendable (PreferredTerminal, String, String) throws -> String = { terminal, workingDirectory, sessionID in
+            try TerminalLaunchService().launch(terminal: terminal, workingDirectory: workingDirectory, sessionID: sessionID)
+        },
         isNotificationSessionAlreadyFrontmost: @escaping @Sendable (AgentSession) async -> Bool = { session in
             await ForegroundTerminalSessionProbe().matches(session: session)
         }
     ) {
         self.terminalJumpAction = terminalJumpAction
+        self.terminalLaunchAction = terminalLaunchAction
         self.isNotificationSessionAlreadyFrontmost = isNotificationSessionAlreadyFrontmost
         UserDefaults.standard.register(defaults: [
             Self.showDockIconDefaultsKey: true,
             Self.hapticFeedbackEnabledDefaultsKey: false,
             Self.completionReplyEnabledDefaultsKey: false,
             Self.suppressFrontmostNotificationsDefaultsKey: true,
+            Self.preferredTerminalDefaultsKey: PreferredTerminal.default.rawValue,
         ])
         isSoundMuted = UserDefaults.standard.bool(forKey: Self.soundMutedDefaultsKey)
         selectedSoundName = NotificationSoundService.selectedSoundName
         showDockIcon = UserDefaults.standard.bool(forKey: Self.showDockIconDefaultsKey)
         hapticFeedbackEnabled = UserDefaults.standard.bool(forKey: Self.hapticFeedbackEnabledDefaultsKey)
         suppressFrontmostNotifications = UserDefaults.standard.bool(forKey: Self.suppressFrontmostNotificationsDefaultsKey)
+        preferredTerminal = PreferredTerminal(
+            rawValue: UserDefaults.standard.string(forKey: Self.preferredTerminalDefaultsKey) ?? ""
+        ) ?? .default
         completionReplyEnabled = UserDefaults.standard.bool(forKey: Self.completionReplyEnabledDefaultsKey)
         launchAtLoginEnabled = LaunchAtLoginService.shared.isEnabled
         appearanceSettingsProfile = IslandAppearanceDisplayProfile(
@@ -1097,6 +1120,44 @@ final class AppModel {
             return
         }
         jump(to: jumpTarget)
+    }
+
+    /// Resumes a session that can't be jumped to live (e.g. one recovered
+    /// from a transcript file with no known terminal) by launching the
+    /// preferred terminal at its working directory running `claude --resume`.
+    func resumeSession(_ session: AgentSession) {
+        guard let workingDirectory = session.jumpTarget?.workingDirectory, !workingDirectory.isEmpty else {
+            lastActionMessage = "Cannot resume: no working directory is available for this session."
+            return
+        }
+
+        let terminal = preferredTerminal
+        let sessionID = session.id
+        let launchAction = terminalLaunchAction
+
+        dismissOverlayForJump()
+        resumeTask?.cancel()
+        resumeTask = Task { [weak self] in
+            do {
+                let result = try await Task.detached(priority: .userInitiated) {
+                    try launchAction(terminal, workingDirectory, sessionID)
+                }.value
+
+                guard !Task.isCancelled else {
+                    return
+                }
+
+                self?.lastActionMessage = result
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else {
+                    return
+                }
+
+                self?.lastActionMessage = "Resume failed: \(error.localizedDescription)"
+            }
+        }
     }
 
     private func jump(to jumpTarget: JumpTarget?) {
