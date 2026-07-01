@@ -4,7 +4,7 @@ Replay bridge events into a running Session Hawk dev app.
 
 This is a manual UI verification helper.  It sends realistic bridge commands
 over the same Unix socket used by hook clients.  Permission/question events keep
-their socket open by default, matching real blocking hook/plugin processes while
+their socket open by default, matching real blocking hook processes while
 the UI waits for user input.
 """
 
@@ -16,12 +16,11 @@ import os
 import socket
 import sys
 import time
-import uuid
 from pathlib import Path
 from typing import Any
 
 
-SCENARIOS = ("approval", "question", "question-hook", "completion", "all")
+SCENARIOS = ("approval", "question", "completion", "all")
 DEFAULT_FIRE_AND_FORGET_PAUSE = 0.15
 DEFAULT_HOLD_TIMEOUT = 0.0
 
@@ -41,150 +40,60 @@ def base_payload(session_id: str, cwd: str, terminal_title: str) -> dict[str, An
     return {
         "cwd": cwd,
         "session_id": session_id,
-        "terminal_app": "Ghostty",
+        "transcript_path": f"/tmp/session-hawk-{session_id}.jsonl",
+        "model": "claude-sonnet-5",
+        "permission_mode": "default",
+        "terminal_app": "cmux",
         "terminal_session_id": f"replay-{session_id}",
         "terminal_title": terminal_title,
     }
 
 
-def codex_payload(
-    event: str,
+def claude_payload(
+    hook_event_name: str,
     session_id: str,
-    *,
     cwd: str,
-    prompt: str | None = None,
-    tool_name: str | None = None,
-    tool_input: dict[str, Any] | None = None,
-    last_assistant_message: str | None = None,
+    *,
+    terminal_title: str = "session-hawk demo",
+    **fields: Any,
 ) -> dict[str, Any]:
+    """Build a ClaudeHookPayload dict (snake_case keys per ClaudeHooks.swift CodingKeys)."""
     payload = {
-        **base_payload(session_id, cwd, "codex replay ~/Personal/session-hawk"),
-        "hook_event_name": event,
-        "model": "gpt-5.3-codex-replay",
-        "permission_mode": "default",
-        "transcript_path": f"/tmp/session-hawk-{session_id}.jsonl",
+        **base_payload(session_id, cwd, terminal_title),
+        "hook_event_name": hook_event_name,
     }
-    if prompt is not None:
-        payload["prompt"] = prompt
-    if tool_name is not None:
-        payload["tool_name"] = tool_name
-        payload["tool_use_id"] = f"tool-{session_id}"
-    if tool_input is not None:
-        payload["tool_input"] = tool_input
-    if last_assistant_message is not None:
-        payload["last_assistant_message"] = last_assistant_message
+    for key, value in fields.items():
+        if value is not None:
+            payload[key] = value
     return payload
 
 
-def opencode_payload(
-    event: str,
-    session_id: str,
-    *,
-    cwd: str,
-    prompt: str | None = None,
-    tool_name: str | None = None,
-    tool_input: str | None = None,
-    question_text: str | None = None,
-    questions: list[dict[str, Any]] | None = None,
-    last_assistant_message: str | None = None,
-) -> dict[str, Any]:
-    payload = {
-        **base_payload(session_id, cwd, "opencode replay ~/Personal/session-hawk"),
-        "hook_event_name": event,
-        "model": "opencode-replay",
+def claude_question_tool_input() -> dict[str, Any]:
+    """Mirrors the real AskUserQuestion tool_input shape (camelCase, per ClaudeHookPayload.questionPrompt).
+
+    The app appends an "Other" freeform option itself, so it isn't included here.
+    """
+    return {
+        "questions": [
+            {
+                "question": "Which notification treatment should this session use?",
+                "header": "Notification",
+                "options": [
+                    {"label": "Inline choices", "description": "Answer directly in the island"},
+                    {"label": "Jump back", "description": "Return to the terminal before answering"},
+                ],
+                "multiSelect": False,
+            }
+        ]
     }
-    if prompt is not None:
-        payload["prompt"] = prompt
-    if tool_name is not None:
-        payload["tool_name"] = tool_name
-    if tool_input is not None:
-        payload["tool_input"] = tool_input
-    if question_text is not None:
-        payload["question_id"] = f"question-{session_id}"
-        payload["question_text"] = question_text
-    if questions is not None:
-        payload["questions"] = questions
-    if last_assistant_message is not None:
-        payload["last_assistant_message"] = last_assistant_message
-    return payload
 
 
 def command_envelope(command: dict[str, Any]) -> dict[str, Any]:
     return {"type": "command", "command": command}
 
 
-def process_codex_hook(payload: dict[str, Any]) -> dict[str, Any]:
-    return command_envelope({"type": "processCodexHook", "codexHook": payload})
-
-
-def process_opencode_hook(payload: dict[str, Any]) -> dict[str, Any]:
-    return command_envelope({"type": "processOpenCodeHook", "openCodeHook": payload})
-
-
-def request_question(session_id: str, title: str, questions: list[dict[str, Any]]) -> dict[str, Any]:
-    resolved_questions = []
-    flat_options = []
-    for question in questions:
-        resolved_options = []
-        for option in question.get("options", []):
-            label = option["label"]
-            flat_options.append(label)
-            resolved_options.append(
-                {
-                    "id": str(uuid.uuid4()),
-                    "label": label,
-                    "description": option.get("description", ""),
-                    "allowsFreeform": option.get("allows_freeform", False),
-                }
-            )
-
-        resolved_questions.append(
-            {
-                "question": question["question"],
-                "header": question.get("header", "Question"),
-                "options": resolved_options,
-                "multiSelect": question.get("multi_select", False),
-            }
-        )
-
-    return command_envelope(
-        {
-            "type": "requestQuestion",
-            "sessionID": session_id,
-            "prompt": {
-                "id": str(uuid.uuid4()),
-                "title": title,
-                "options": flat_options,
-                "questions": resolved_questions,
-            },
-        }
-    )
-
-
-def replay_question_prompt() -> tuple[str, list[dict[str, Any]]]:
-    title = "Which notification treatment should this session use?"
-    questions = [
-        {
-            "question": title,
-            "header": "Notification",
-            "options": [
-                {
-                    "label": "Inline choices",
-                    "description": "Answer directly in the island",
-                },
-                {
-                    "label": "Jump back",
-                    "description": "Return to the terminal before answering",
-                },
-                {
-                    "label": "Other",
-                    "description": "Type a custom reply",
-                    "allows_freeform": True,
-                },
-            ],
-        }
-    ]
-    return title, questions
+def process_claude_hook(payload: dict[str, Any]) -> dict[str, Any]:
+    return command_envelope({"type": "processClaudeHook", "claudeHook": payload})
 
 
 def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any], bool, bool]]:
@@ -192,18 +101,20 @@ def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any]
         session_id = "session-hawk-replay-approval"
         return [
             (
-                "codex session start",
-                process_codex_hook(codex_payload("SessionStart", session_id, cwd=cwd)),
+                "claude session start",
+                process_claude_hook(
+                    claude_payload("SessionStart", session_id, cwd, source="startup")
+                ),
                 True,
                 False,
             ),
             (
-                "codex prompt",
-                process_codex_hook(
-                    codex_payload(
+                "claude prompt",
+                process_claude_hook(
+                    claude_payload(
                         "UserPromptSubmit",
                         session_id,
-                        cwd=cwd,
+                        cwd,
                         prompt="Replay the approval notification card.",
                     )
                 ),
@@ -211,13 +122,14 @@ def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any]
                 False,
             ),
             (
-                "codex approval request",
-                process_codex_hook(
-                    codex_payload(
-                        "PreToolUse",
+                "claude permission request",
+                process_claude_hook(
+                    claude_payload(
+                        "PermissionRequest",
                         session_id,
-                        cwd=cwd,
-                        tool_name="exec_command",
+                        cwd,
+                        tool_name="Bash",
+                        tool_use_id=f"tool-{session_id}",
                         tool_input={"command": "swift test --filter AppModelSessionListTests"},
                     )
                 ),
@@ -227,22 +139,28 @@ def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any]
         ]
 
     if scenario == "question":
+        # Claude Code has no separate "question" hook event. The real mechanism is a
+        # PermissionRequest whose tool_name is AskUserQuestion — BridgeServer.handleClaudeHook
+        # detects payload.questionPrompt (parsed from tool_input) and emits .questionAsked
+        # instead of .permissionRequested, holding the socket the same way. This is the
+        # actual first-class shape the app expects, not an approximation.
         session_id = "session-hawk-replay-question"
-        question_title, questions = replay_question_prompt()
         return [
             (
-                "opencode session start",
-                process_opencode_hook(opencode_payload("SessionStart", session_id, cwd=cwd)),
+                "claude session start",
+                process_claude_hook(
+                    claude_payload("SessionStart", session_id, cwd, source="startup")
+                ),
                 True,
                 False,
             ),
             (
-                "opencode prompt",
-                process_opencode_hook(
-                    opencode_payload(
+                "claude prompt",
+                process_claude_hook(
+                    claude_payload(
                         "UserPromptSubmit",
                         session_id,
-                        cwd=cwd,
+                        cwd,
                         prompt="Replay the question notification card.",
                     )
                 ),
@@ -250,45 +168,15 @@ def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any]
                 False,
             ),
             (
-                "bridge question",
-                request_question(session_id, question_title, questions),
-                True,
-                False,
-            ),
-        ]
-
-    if scenario == "question-hook":
-        session_id = "session-hawk-replay-question-hook"
-        question_title, questions = replay_question_prompt()
-        return [
-            (
-                "opencode session start",
-                process_opencode_hook(opencode_payload("SessionStart", session_id, cwd=cwd)),
-                True,
-                False,
-            ),
-            (
-                "opencode prompt",
-                process_opencode_hook(
-                    opencode_payload(
-                        "UserPromptSubmit",
+                "claude question (AskUserQuestion permission request)",
+                process_claude_hook(
+                    claude_payload(
+                        "PermissionRequest",
                         session_id,
-                        cwd=cwd,
-                        prompt="Replay the question notification card.",
-                    )
-                ),
-                True,
-                False,
-            ),
-            (
-                "opencode question hook",
-                process_opencode_hook(
-                    opencode_payload(
-                        "QuestionAsked",
-                        session_id,
-                        cwd=cwd,
-                        question_text=question_title,
-                        questions=questions,
+                        cwd,
+                        tool_name="AskUserQuestion",
+                        tool_use_id=f"tool-{session_id}",
+                        tool_input=claude_question_tool_input(),
                     )
                 ),
                 False,
@@ -300,18 +188,20 @@ def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any]
         session_id = "session-hawk-replay-completion"
         return [
             (
-                "codex session start",
-                process_codex_hook(codex_payload("SessionStart", session_id, cwd=cwd)),
+                "claude session start",
+                process_claude_hook(
+                    claude_payload("SessionStart", session_id, cwd, source="startup")
+                ),
                 True,
                 False,
             ),
             (
-                "codex prompt",
-                process_codex_hook(
-                    codex_payload(
+                "claude prompt",
+                process_claude_hook(
+                    claude_payload(
                         "UserPromptSubmit",
                         session_id,
-                        cwd=cwd,
+                        cwd,
                         prompt="Replay the completion notification card.",
                     )
                 ),
@@ -319,12 +209,12 @@ def scenario_commands(scenario: str, cwd: str) -> list[tuple[str, dict[str, Any]
                 False,
             ),
             (
-                "codex stop",
-                process_codex_hook(
-                    codex_payload(
+                "claude stop",
+                process_claude_hook(
+                    claude_payload(
                         "Stop",
                         session_id,
-                        cwd=cwd,
+                        cwd,
                         last_assistant_message=(
                             "Bridge replay finished. Use this card to verify completed-session "
                             "notification layout and reply affordances."
@@ -366,7 +256,7 @@ def connect_bridge(socket_path: str) -> socket.socket:
     except FileNotFoundError:
         sock.close()
         raise RuntimeError(
-            f"Bridge socket not found at {socket_path}. Start the dev app with `zsh scripts/launch-dev-app.sh`."
+            f"Bridge socket not found at {socket_path}. Start the dev app first."
         )
     except ConnectionRefusedError:
         sock.close()
