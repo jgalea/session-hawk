@@ -301,101 +301,14 @@ struct TerminalJumpService {
     }
 
     private func jumpToCmuxTerminal(_ target: JumpTarget) -> Bool {
-        // Select the cmux WORKSPACE, not the surface. cmux surface ids are
-        // ephemeral — they churn when a workspace/surface is recreated, and
-        // hibernated surfaces can't be focused by id — so the old
-        // `focus-panel --panel <surfaceID>` returned "not_found" by click time
-        // and the jump fell back to generic app activation (wrong window).
-        // `cmux workspace select <workspace-id>` is the stable primitive: it
-        // de-hibernates and focuses the workspace even when it was inactive.
-        let cli = Self.resolveCmuxBinary()
-
-        guard let handle = resolveCmuxWorkspaceHandle(target, cli: cli) else {
-            SHDebugLog.log("cmux jump: no workspace handle (workspaceID=\(target.terminalWorkspaceID ?? "nil") cwd=\(target.workingDirectory ?? "nil")) — falling back")
-            return false
-        }
-
-        let ok = processRunner(cli, ["workspace", "select", handle])
-        SHDebugLog.log("cmux jump: workspace select handle=\(handle) cli=\(cli) ok=\(ok)")
-        guard ok else {
-            return false
-        }
-
-        // The workspace is now focused inside cmux; bring its window forward.
+        // cmux locks its control socket to `access_mode: cmuxOnly` — only
+        // processes cmux itself launched can drive it. Session Hawk runs
+        // outside cmux's process tree (launched by launchd), so any CLI or
+        // raw-socket call to focus a specific workspace/surface is refused
+        // ("broken pipe"). The best available action is to bring the cmux
+        // window forward, which still saves a step from another app.
         try? openAction(["-b", "com.cmuxterm.app"])
         return true
-    }
-
-    /// Resolves a stable `cmux workspace select` handle for the target:
-    /// the hook-captured workspace UUID when present (precise), otherwise the
-    /// UUID of the single workspace whose cwd matches the session's working
-    /// directory. Ambiguous cwds (shared by multiple workspaces) return nil so
-    /// the caller falls back rather than jumping to the wrong workspace.
-    private func resolveCmuxWorkspaceHandle(_ target: JumpTarget, cli: String) -> String? {
-        if let workspaceID = target.terminalWorkspaceID?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !workspaceID.isEmpty {
-            return workspaceID
-        }
-
-        guard let cwd = target.workingDirectory?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !cwd.isEmpty,
-              let data = runCmuxCapturing(cli: cli, arguments: ["workspace", "list", "--json", "--id-format", "uuids"]) else {
-            return nil
-        }
-
-        return ClaudeHookPayload.cmuxWorkspaceID(fromJSON: data, cwd: cwd)
-    }
-
-    private static func resolveCmuxBinary() -> String {
-        let bundled = "/Applications/cmux.app/Contents/Resources/bin/cmux"
-        return FileManager.default.isExecutableFile(atPath: bundled) ? bundled : "cmux"
-    }
-
-    /// Runs a cmux CLI command and returns its stdout, or nil on launch error,
-    /// non-zero exit, or timeout. Fail-open and time-bounded (2s) so a click
-    /// never hangs on a stuck CLI. Sets `CMUX_QUIET=1` to suppress the
-    /// legacy-alias notice cmux otherwise prints to stdout. Mirrors the
-    /// hook-side resolver's poll-then-read pattern; the workspace-list JSON is
-    /// small enough that it never fills the pipe buffer.
-    private func runCmuxCapturing(cli: String, arguments: [String]) -> Data? {
-        let process = Process()
-        if cli.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: cli) {
-            process.executableURL = URL(fileURLWithPath: cli)
-            process.arguments = arguments
-        } else {
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = [cli] + arguments
-        }
-
-        var environment = ProcessInfo.processInfo.environment
-        environment["CMUX_QUIET"] = "1"
-        process.environment = environment
-
-        let outPipe = Pipe()
-        process.standardOutput = outPipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-        } catch {
-            return nil
-        }
-
-        let deadline = Date().addingTimeInterval(2.0)
-        while process.isRunning {
-            if Date() >= deadline {
-                process.terminate()
-                return nil
-            }
-            usleep(20_000)
-        }
-
-        guard process.terminationStatus == 0 else {
-            return nil
-        }
-
-        let data = outPipe.fileHandleForReading.readDataToEndOfFile()
-        return data.isEmpty ? nil : data
     }
 
     // MARK: - Tmux CLI-based jump
