@@ -7,7 +7,7 @@ import SessionHawkCore
 @Observable
 final class OverlayUICoordinator {
 
-    private static let notificationSurfaceAutoCollapseDelay: TimeInterval = 10
+    private static let notificationSurfaceAutoCollapseDelay: TimeInterval = 5
 
     var notchStatus: NotchStatus = .closed
     var notchOpenReason: NotchOpenReason?
