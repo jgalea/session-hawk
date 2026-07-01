@@ -11,14 +11,14 @@ struct CmuxWorkspaceNameTests {
     {
       "workspaces": [
         {
-          "current_directory": "/Users/jean/code/lantana",
+          "current_directory": "/repos/lantana",
           "custom_title": "Lantana",
           "has_custom_title": true,
           "id": "11111111-1111-1111-1111-111111111111",
           "ref": "workspace:1"
         },
         {
-          "current_directory": "/Users/jean/code/plain",
+          "current_directory": "/repos/plain",
           "custom_title": null,
           "has_custom_title": false,
           "id": "22222222-2222-2222-2222-222222222222",
@@ -32,7 +32,7 @@ struct CmuxWorkspaceNameTests {
     func returnsCustomTitleWhenCwdMatchesAndTitleIsSet() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(sample),
-            cwd: "/Users/jean/code/lantana",
+            cwd: "/repos/lantana",
             workspaceID: nil
         )
         #expect(title == "Lantana")
@@ -42,7 +42,7 @@ struct CmuxWorkspaceNameTests {
     func matchesRegardlessOfTrailingSlashInCwd() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(sample),
-            cwd: "/Users/jean/code/lantana/",
+            cwd: "/repos/lantana/",
             workspaceID: nil
         )
         #expect(title == "Lantana")
@@ -52,7 +52,7 @@ struct CmuxWorkspaceNameTests {
     func returnsNilWhenWorkspaceHasNoCustomTitle() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(sample),
-            cwd: "/Users/jean/code/plain",
+            cwd: "/repos/plain",
             workspaceID: nil
         )
         #expect(title == nil)
@@ -62,7 +62,7 @@ struct CmuxWorkspaceNameTests {
     func returnsNilWhenNoWorkspaceMatchesCwd() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(sample),
-            cwd: "/Users/jean/code/unknown",
+            cwd: "/repos/unknown",
             workspaceID: nil
         )
         #expect(title == nil)
@@ -74,7 +74,7 @@ struct CmuxWorkspaceNameTests {
         // titled one — the UUID match wins.
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(sample),
-            cwd: "/Users/jean/code/plain",
+            cwd: "/repos/plain",
             workspaceID: "11111111-1111-1111-1111-111111111111"
         )
         #expect(title == "Lantana")
@@ -84,7 +84,7 @@ struct CmuxWorkspaceNameTests {
     func fallsBackToCwdWhenWorkspaceIDDoesNotMatch() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(sample),
-            cwd: "/Users/jean/code/lantana",
+            cwd: "/repos/lantana",
             workspaceID: "does-not-exist"
         )
         #expect(title == "Lantana")
@@ -98,14 +98,14 @@ struct CmuxWorkspaceNameTests {
         {
           "workspaces": [
             {
-              "current_directory": "/Users/jean/code/pa",
+              "current_directory": "/repos/pa",
               "custom_title": "Session Hawk",
               "has_custom_title": true,
               "id": "aaaaaaaa-0000-0000-0000-000000000001",
               "ref": "workspace:9"
             },
             {
-              "current_directory": "/Users/jean/code/pa",
+              "current_directory": "/repos/pa",
               "custom_title": "Portal Backup",
               "has_custom_title": true,
               "id": "bbbbbbbb-0000-0000-0000-000000000002",
@@ -116,7 +116,7 @@ struct CmuxWorkspaceNameTests {
         """
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(ambiguous),
-            cwd: "/Users/jean/code/pa",
+            cwd: "/repos/pa",
             workspaceID: nil
         )
         #expect(title == nil)
@@ -128,14 +128,14 @@ struct CmuxWorkspaceNameTests {
         {
           "workspaces": [
             {
-              "current_directory": "/Users/jean/code/pa",
+              "current_directory": "/repos/pa",
               "custom_title": "Session Hawk",
               "has_custom_title": true,
               "id": "aaaaaaaa-0000-0000-0000-000000000001",
               "ref": "workspace:9"
             },
             {
-              "current_directory": "/Users/jean/code/pa",
+              "current_directory": "/repos/pa",
               "custom_title": "Portal Backup",
               "has_custom_title": true,
               "id": "bbbbbbbb-0000-0000-0000-000000000002",
@@ -146,7 +146,7 @@ struct CmuxWorkspaceNameTests {
         """
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json(ambiguous),
-            cwd: "/Users/jean/code/pa",
+            cwd: "/repos/pa",
             workspaceID: "bbbbbbbb-0000-0000-0000-000000000002"
         )
         #expect(title == "Portal Backup")
@@ -156,7 +156,7 @@ struct CmuxWorkspaceNameTests {
     func returnsNilOnMalformedJSON() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json("{ not json"),
-            cwd: "/Users/jean/code/lantana",
+            cwd: "/repos/lantana",
             workspaceID: nil
         )
         #expect(title == nil)
@@ -165,7 +165,7 @@ struct CmuxWorkspaceNameTests {
     @Test
     func workspaceNamePrefersResolvedNameOverCwdBasename() {
         var payload = ClaudeHookPayload(
-            cwd: "/Users/jean/code/lantana",
+            cwd: "/repos/lantana",
             hookEventName: .sessionStart,
             sessionID: "abc"
         )
@@ -178,7 +178,7 @@ struct CmuxWorkspaceNameTests {
     @Test
     func workspaceNameFallsBackWhenResolvedNameIsBlank() {
         var payload = ClaudeHookPayload(
-            cwd: "/Users/jean/code/lantana",
+            cwd: "/repos/lantana",
             hookEventName: .sessionStart,
             sessionID: "abc",
             resolvedWorkspaceName: "   "
@@ -189,7 +189,7 @@ struct CmuxWorkspaceNameTests {
     @Test
     func resolvedWorkspaceNameSurvivesCodableRoundTrip() throws {
         let payload = ClaudeHookPayload(
-            cwd: "/Users/jean/code/lantana",
+            cwd: "/repos/lantana",
             hookEventName: .sessionStart,
             sessionID: "abc",
             terminalApp: "cmux",
