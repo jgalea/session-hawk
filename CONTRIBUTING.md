@@ -1,7 +1,5 @@
 # Contributing to Session Hawk
 
-<a href="CONTRIBUTING.zh-CN.md">中文</a> | <strong>English</strong>
-
 Thank you for your interest in contributing to Session Hawk!
 
 ---
@@ -27,21 +25,21 @@ Then list what you already know, such as release/build process, repo architectur
 
 ### Report a Bug via Your Code Agent
 
-If you run into a problem, copy the prompt below into your code agent (Claude Code, Codex, etc.) and it will automatically collect environment info and create a well-structured issue for you.
+If you run into a problem, copy the prompt below into Claude Code and it will automatically collect environment info and create a well-structured issue for you.
 
 <details>
 <summary>Click to expand the prompt</summary>
 
 ```
-I'm having an issue with Session Hawk (https://github.com/Octane0411/open-vibe-island).
+I'm having an issue with Session Hawk (https://github.com/jgalea/session-hawk).
 
 Please help me file a GitHub issue. Do the following:
 
 1. Collect my environment info:
    - Run `sw_vers` to get macOS version
    - Run `swift --version` to get Swift version
-   - Check if Session Hawk is running: `ps aux | grep -i "open.island\|SessionHawkApp" | grep -v grep`
-   - Get the app version: `defaults read ~/Applications/Open\ Island\ Dev.app/Contents/Info.plist CFBundleShortVersionString 2>/dev/null || echo "unknown"`
+   - Check if Session Hawk is running: `ps aux | grep -i "SessionHawkApp" | grep -v grep`
+   - Get the app version: `defaults read ~/Applications/Session\ Hawk\ Dev.app/Contents/Info.plist CFBundleShortVersionString 2>/dev/null || echo "unknown"`
    - Check which terminal I'm using
 
 2. Ask me to describe:
@@ -54,7 +52,7 @@ Please help me file a GitHub issue. Do the following:
    - Body with sections: **Environment**, **Description**, **Steps to Reproduce**, **Expected vs Actual Behavior**
    - Add label "bug" if applicable
 
-Repository: Octane0411/open-vibe-island
+Repository: jgalea/session-hawk
 ```
 
 </details>
@@ -67,7 +65,7 @@ Have an idea? Let your agent draft the proposal for you.
 <summary>Click to expand the prompt</summary>
 
 ```
-I'd like to request a feature for Session Hawk (https://github.com/Octane0411/open-vibe-island).
+I'd like to request a feature for Session Hawk (https://github.com/jgalea/session-hawk).
 
 Please help me file a GitHub issue. Do the following:
 
@@ -81,7 +79,7 @@ Please help me file a GitHub issue. Do the following:
    - Body with sections: **Feature Description**, **Motivation**, **Proposed Behavior**
    - Add label "enhancement" if applicable
 
-Repository: Octane0411/open-vibe-island
+Repository: jgalea/session-hawk
 ```
 
 </details>
@@ -126,7 +124,7 @@ You can also open `Package.swift` in Xcode to build and run the app target direc
 
 ### Where to Go Next
 
-- [`CLAUDE.md`](CLAUDE.md) — Architecture, conventions, branching rules, commit policy, and release workflow.
+- [`docs/index.md`](docs/index.md) — Repository map: architecture, product scope, packaging, and release workflow.
 - [`docs/architecture.md`](docs/architecture.md) — System design and engineering decisions.
 - [`docs/product.md`](docs/product.md) — Product scope and MVP boundary.
 - [`docs/hooks.md`](docs/hooks.md) — Supported hook events, payload fields, and directive protocol.

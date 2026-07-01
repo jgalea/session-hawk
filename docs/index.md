@@ -31,4 +31,4 @@ This index is the repository map for humans and coding agents. Read these files 
 
 ## Release
 
-- [docs/release-signing.md](./release-signing.md) for code signing and notarization details
+- [RELEASE.md](../RELEASE.md) for the one-time signing/notarization prerequisites and how to cut a release

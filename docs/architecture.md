@@ -87,7 +87,6 @@ The hook helper enriches payloads with terminal-local hints (terminal app, TTY, 
 - AppKit for panel behavior, status item control, and activation policy edge cases
 - Unix domain sockets for IPC
 - JSON event envelopes for debugging and adapter simplicity
-- Sparkle for auto-updates
 
 ## Engineering Rules
 
