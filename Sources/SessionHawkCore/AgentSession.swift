@@ -85,6 +85,12 @@ public struct JumpTarget: Equatable, Codable, Sendable {
     public var paneTitle: String
     public var workingDirectory: String?
     public var terminalSessionID: String?
+    /// Stable cmux workspace UUID captured from `CMUX_WORKSPACE_ID` at hook
+    /// time. Unlike `terminalSessionID` (an ephemeral cmux surface id), this
+    /// survives surface/workspace recreation and is the reliable handle for
+    /// `cmux workspace select` at click time. Nil for non-cmux sessions and
+    /// for process-detected cmux sessions (resolved by cwd at click time).
+    public var terminalWorkspaceID: String?
     public var terminalTTY: String?
     public var tmuxTarget: String?
     public var tmuxSocketPath: String?
@@ -95,6 +101,7 @@ public struct JumpTarget: Equatable, Codable, Sendable {
         paneTitle: String,
         workingDirectory: String? = nil,
         terminalSessionID: String? = nil,
+        terminalWorkspaceID: String? = nil,
         terminalTTY: String? = nil,
         tmuxTarget: String? = nil,
         tmuxSocketPath: String? = nil
@@ -104,6 +111,7 @@ public struct JumpTarget: Equatable, Codable, Sendable {
         self.paneTitle = paneTitle
         self.workingDirectory = workingDirectory
         self.terminalSessionID = terminalSessionID
+        self.terminalWorkspaceID = terminalWorkspaceID
         self.terminalTTY = terminalTTY
         self.tmuxTarget = tmuxTarget
         self.tmuxSocketPath = tmuxSocketPath

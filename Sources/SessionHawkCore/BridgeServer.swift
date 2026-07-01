@@ -818,6 +818,14 @@ public final class BridgeServer: @unchecked Sendable {
            !existingID.isEmpty {
             merged.terminalSessionID = existingID
         }
+        // The stable cmux workspace id is likewise resolved-or-nil: a later
+        // hook firing outside the cmux workspace shell has no CMUX_WORKSPACE_ID
+        // and would otherwise clear a good value. Prefer the last known good.
+        if merged.terminalWorkspaceID == nil,
+           let existingWorkspaceID = existing?.terminalWorkspaceID,
+           !existingWorkspaceID.isEmpty {
+            merged.terminalWorkspaceID = existingWorkspaceID
+        }
         return merged
     }
 

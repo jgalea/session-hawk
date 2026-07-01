@@ -1955,6 +1955,7 @@ private struct IslandSessionRow: View {
 
     private func handlePrimaryTap() {
         guard isInteractive else { return }
+        SHDebugLog.log("tap id=\(session.id) name=\(session.spotlightWorkspaceName) term=\(session.jumpTarget?.terminalApp ?? "nil") surf=\(session.jumpTarget?.terminalSessionID ?? "nil") ws=\(session.jumpTarget?.terminalWorkspaceID ?? "nil") cwd=\(session.jumpTarget?.workingDirectory ?? "nil") resumeAffordance=\(showsResumeAffordance)")
         if showsResumeAffordance, let onResume {
             onResume()
             return

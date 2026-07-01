@@ -423,6 +423,13 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
     /// cwd-basename fallback in `workspaceName`.
     public var resolvedWorkspaceName: String?
 
+    /// Stable cmux workspace UUID from `CMUX_WORKSPACE_ID`, captured by the
+    /// hook process (only it runs inside the cmux workspace shell where the
+    /// env var is set). Carried across the bridge so the jump service can
+    /// resolve a live `cmux workspace select` handle at click time instead of
+    /// relying on the ephemeral surface id.
+    public var terminalWorkspaceID: String?
+
     /// The agent tool that produced this hook payload.
     /// Set by the hooks CLI from the `--source` argument; absent from the JSON emitted by agents
     /// themselves but included on the Unix-socket wire so `BridgeServer.resolvedAgentTool` can
@@ -462,6 +469,7 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
         case terminalTitle = "terminal_title"
         case remote
         case resolvedWorkspaceName = "resolved_workspace_name"
+        case terminalWorkspaceID = "terminal_workspace_id"
     }
 
     public init(
@@ -495,7 +503,8 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
         terminalTTY: String? = nil,
         terminalTitle: String? = nil,
         remote: Bool? = nil,
-        resolvedWorkspaceName: String? = nil
+        resolvedWorkspaceName: String? = nil,
+        terminalWorkspaceID: String? = nil
     ) {
         self.cwd = cwd
         self.hookEventName = hookEventName
@@ -528,6 +537,7 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
         self.terminalTitle = terminalTitle
         self.remote = remote
         self.resolvedWorkspaceName = resolvedWorkspaceName
+        self.terminalWorkspaceID = terminalWorkspaceID
     }
 }
 
@@ -746,6 +756,7 @@ public extension ClaudeHookPayload {
             paneTitle: terminalTitle ?? "Claude \(sessionID.prefix(8))",
             workingDirectory: cwd,
             terminalSessionID: terminalSessionID,
+            terminalWorkspaceID: terminalWorkspaceID,
             terminalTTY: terminalTTY
         )
     }
@@ -1001,6 +1012,15 @@ public extension ClaudeHookPayload {
         if payload.terminalApp == "cmux" {
             if payload.terminalSessionID == nil {
                 payload.terminalSessionID = environment["CMUX_SURFACE_ID"]
+            }
+
+            // Capture the stable workspace UUID. cmux surface ids are
+            // ephemeral (they churn when a workspace/surface is recreated and
+            // hibernated surfaces can't be focused by id), but the workspace
+            // id is stable, so the jump service uses it as the reliable
+            // `cmux workspace select` handle at click time.
+            if payload.terminalWorkspaceID == nil {
+                payload.terminalWorkspaceID = environment["CMUX_WORKSPACE_ID"]
             }
 
             // cmux lets the user manually name each workspace; that name is
@@ -1434,6 +1454,28 @@ public extension ClaudeHookPayload {
             return nil
         }
         return title
+    }
+
+    /// Parses `cmux workspace list --json` output and returns the stable
+    /// workspace UUID for the entry whose working directory matches `cwd`, but
+    /// only when EXACTLY ONE entry matches. Several cmux workspaces routinely
+    /// share one directory, so an ambiguous cwd yields nil rather than a wrong
+    /// guess. Used at click time to resolve a `cmux workspace select` handle
+    /// when the live-hook `CMUX_WORKSPACE_ID` is unavailable (e.g.
+    /// process-detected sessions). Pure and side-effect free for unit testing.
+    static func cmuxWorkspaceID(fromJSON data: Data, cwd: String) -> String? {
+        guard let list = try? JSONDecoder().decode(CmuxWorkspaceList.self, from: data),
+              let target = standardizedPath(cwd) else {
+            return nil
+        }
+
+        let matches = list.workspaces.filter { standardizedPath($0.currentDirectory) == target }
+        guard matches.count == 1,
+              let id = matches.first?.id?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !id.isEmpty else {
+            return nil
+        }
+        return id
     }
 
     private static func standardizedPath(_ path: String?) -> String? {

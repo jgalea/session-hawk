@@ -162,6 +162,91 @@ struct CmuxWorkspaceNameTests {
         #expect(title == nil)
     }
 
+    // MARK: - cwd -> workspace id resolution (click-time jump handle)
+
+    @Test
+    func workspaceIDReturnedForUniqueCwdMatch() {
+        let id = ClaudeHookPayload.cmuxWorkspaceID(
+            fromJSON: json(sample),
+            cwd: "/repos/lantana"
+        )
+        #expect(id == "11111111-1111-1111-1111-111111111111")
+    }
+
+    @Test
+    func workspaceIDMatchesRegardlessOfTrailingSlash() {
+        let id = ClaudeHookPayload.cmuxWorkspaceID(
+            fromJSON: json(sample),
+            cwd: "/repos/lantana/"
+        )
+        #expect(id == "11111111-1111-1111-1111-111111111111")
+    }
+
+    @Test
+    func workspaceIDNilForAmbiguousCwd() {
+        // Several cmux workspaces share one directory, so the cwd alone cannot
+        // pick one — return nil rather than jump to the wrong workspace.
+        let ambiguous = """
+        {
+          "workspaces": [
+            {
+              "current_directory": "/repos/pa",
+              "custom_title": "Session Hawk",
+              "has_custom_title": true,
+              "id": "aaaaaaaa-0000-0000-0000-000000000001",
+              "ref": "workspace:9"
+            },
+            {
+              "current_directory": "/repos/pa",
+              "custom_title": "Portal Backup",
+              "has_custom_title": true,
+              "id": "bbbbbbbb-0000-0000-0000-000000000002",
+              "ref": "workspace:4"
+            }
+          ]
+        }
+        """
+        let id = ClaudeHookPayload.cmuxWorkspaceID(
+            fromJSON: json(ambiguous),
+            cwd: "/repos/pa"
+        )
+        #expect(id == nil)
+    }
+
+    @Test
+    func workspaceIDNilWhenNoCwdMatches() {
+        let id = ClaudeHookPayload.cmuxWorkspaceID(
+            fromJSON: json(sample),
+            cwd: "/repos/unknown"
+        )
+        #expect(id == nil)
+    }
+
+    @Test
+    func workspaceIDNilOnMalformedJSON() {
+        let id = ClaudeHookPayload.cmuxWorkspaceID(
+            fromJSON: json("{ not json"),
+            cwd: "/repos/lantana"
+        )
+        #expect(id == nil)
+    }
+
+    @Test
+    func terminalWorkspaceIDSurvivesJumpTargetCodableRoundTrip() throws {
+        let target = JumpTarget(
+            terminalApp: "cmux",
+            workspaceName: "Lantana",
+            paneTitle: "pane",
+            workingDirectory: "/repos/lantana",
+            terminalWorkspaceID: "11111111-1111-1111-1111-111111111111"
+        )
+
+        let encoded = try JSONEncoder().encode(target)
+        let decoded = try JSONDecoder().decode(JumpTarget.self, from: encoded)
+
+        #expect(decoded.terminalWorkspaceID == "11111111-1111-1111-1111-111111111111")
+    }
+
     @Test
     func workspaceNamePrefersResolvedNameOverCwdBasename() {
         var payload = ClaudeHookPayload(
