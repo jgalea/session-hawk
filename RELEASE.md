@@ -19,20 +19,26 @@ The app must be signed with a **Developer ID Application** certificate and notar
 ## Cut a release
 
 ```sh
-export SESSION_HAWK_SIGN_IDENTITY="Developer ID Application: <name> (V39FW47X6K)"
-export SESSION_HAWK_NOTARY_PROFILE="session-hawk-notary"
-zsh scripts/package-app.sh
+zsh scripts/release.sh 1.0.0
 ```
 
-This produces a signed, notarized, stapled `Session Hawk.app` and a styled `Session Hawk.dmg`.
+This builds (signed + notarized automatically if the prerequisites above are in place, unsigned otherwise), then publishes a GitHub release with the DMG and zip attached, and verifies the DMG is downloadable. It requires a clean working tree on `main`, up to date with `origin/main`.
 
-Publish it:
+Pass `--notes-file <path>` to use written release notes (see [docs/releasing.md](docs/releasing.md) for the format) instead of auto-generated notes, or `--draft` to create a draft release for review before publishing.
+
+<details>
+<summary>Manual steps (what the script does)</summary>
 
 ```sh
-VERSION=1.0.0
-gh release create "v$VERSION" "Session Hawk.dmg" \
-  --repo jgalea/session-hawk --title "v$VERSION" --notes "..."
+export SESSION_HAWK_SIGN_IDENTITY="Developer ID Application: <name> (V39FW47X6K)"
+export SESSION_HAWK_NOTARY_PROFILE="session-hawk-notary"
+SESSION_HAWK_VERSION=1.0.0 zsh scripts/package-app.sh
+
+gh release create "v1.0.0" "output/package/Session Hawk.dmg" "output/package/Session Hawk.zip" \
+  --repo jgalea/session-hawk --title "Session Hawk v1.0.0" --generate-notes
 ```
+
+</details>
 
 ## Homebrew tap
 
