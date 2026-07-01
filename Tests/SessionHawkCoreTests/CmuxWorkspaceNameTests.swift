@@ -91,6 +91,68 @@ struct CmuxWorkspaceNameTests {
     }
 
     @Test
+    func returnsNilWhenCwdIsAmbiguousWithoutWorkspaceID() {
+        // Several cmux workspaces routinely share one directory with different
+        // titles. Without a UUID to disambiguate, we must not guess.
+        let ambiguous = """
+        {
+          "workspaces": [
+            {
+              "current_directory": "/Users/jean/code/pa",
+              "custom_title": "Session Hawk",
+              "has_custom_title": true,
+              "id": "aaaaaaaa-0000-0000-0000-000000000001",
+              "ref": "workspace:9"
+            },
+            {
+              "current_directory": "/Users/jean/code/pa",
+              "custom_title": "Portal Backup",
+              "has_custom_title": true,
+              "id": "bbbbbbbb-0000-0000-0000-000000000002",
+              "ref": "workspace:4"
+            }
+          ]
+        }
+        """
+        let title = ClaudeHookPayload.cmuxCustomTitle(
+            fromJSON: json(ambiguous),
+            cwd: "/Users/jean/code/pa",
+            workspaceID: nil
+        )
+        #expect(title == nil)
+    }
+
+    @Test
+    func resolvesAmbiguousCwdWhenWorkspaceIDIsPresent() {
+        let ambiguous = """
+        {
+          "workspaces": [
+            {
+              "current_directory": "/Users/jean/code/pa",
+              "custom_title": "Session Hawk",
+              "has_custom_title": true,
+              "id": "aaaaaaaa-0000-0000-0000-000000000001",
+              "ref": "workspace:9"
+            },
+            {
+              "current_directory": "/Users/jean/code/pa",
+              "custom_title": "Portal Backup",
+              "has_custom_title": true,
+              "id": "bbbbbbbb-0000-0000-0000-000000000002",
+              "ref": "workspace:4"
+            }
+          ]
+        }
+        """
+        let title = ClaudeHookPayload.cmuxCustomTitle(
+            fromJSON: json(ambiguous),
+            cwd: "/Users/jean/code/pa",
+            workspaceID: "bbbbbbbb-0000-0000-0000-000000000002"
+        )
+        #expect(title == "Portal Backup")
+    }
+
+    @Test
     func returnsNilOnMalformedJSON() {
         let title = ClaudeHookPayload.cmuxCustomTitle(
             fromJSON: json("{ not json"),

@@ -1419,8 +1419,13 @@ public extension ClaudeHookPayload {
            let byID = entries.first(where: { $0.id == workspaceID || $0.ref == workspaceID }) {
             match = byID
         } else {
+            // Without a workspace UUID the cwd is the only signal, but several
+            // cmux workspaces routinely share one directory with different
+            // titles. Only trust a cwd match when it is unambiguous; otherwise
+            // fall back to the cwd basename rather than guess a wrong title.
             let target = standardizedPath(cwd)
-            match = entries.first { standardizedPath($0.currentDirectory) == target }
+            let cwdMatches = entries.filter { standardizedPath($0.currentDirectory) == target }
+            match = cwdMatches.count == 1 ? cwdMatches.first : nil
         }
 
         guard let match, match.hasCustomTitle == true,
