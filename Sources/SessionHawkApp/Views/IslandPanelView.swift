@@ -1391,20 +1391,24 @@ private struct IslandSessionRow: View {
         let tint = Color(hex: session.tool.brandColorHex) ?? V6Palette.paper
         return Text(agentBadgeTitle)
             .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+            .lineLimit(1)
             .foregroundStyle(tint.opacity(notificationChromeOpacity))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(tint.opacity(notificationBadgeFillOpacity), in: Capsule())
             .overlay(Capsule().stroke(tint.opacity(notificationBadgeStrokeOpacity), lineWidth: 1))
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     private func sideBadge(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+            .lineLimit(1)
             .foregroundStyle(V6Palette.paper.opacity(presentation == .notification ? 0.52 : 0.7))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(.white.opacity(presentation == .notification ? 0.045 : 0.06), in: Capsule())
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     private var summaryPromptLineText: String? {
@@ -1965,11 +1969,13 @@ private struct IslandSessionRow: View {
                     .font(.system(size: 10, weight: .semibold))
                 Text(lang.t("island.session.resume"))
                     .font(.system(size: 10.5, weight: .semibold))
+                    .lineLimit(1)
             }
             .foregroundStyle(.white.opacity(0.85))
             .padding(.horizontal, 8)
             .padding(.vertical, 3.5)
             .background(.white.opacity(0.12), in: Capsule())
+            .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(lang.t("island.session.resume"))
