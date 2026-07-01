@@ -415,6 +415,14 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
     /// Set to `true` by the Python hook client to indicate a remote (SSH) session.
     public var remote: Bool?
 
+    /// Workspace name resolved by the hook process from the terminal
+    /// multiplexer (currently cmux's manually-set `custom_title`). Only the
+    /// hook runs inside the multiplexer shell where the multiplexer CLI and
+    /// its socket env vars are reachable, so the name has to be resolved there
+    /// and carried across the bridge. When present, it wins over the
+    /// cwd-basename fallback in `workspaceName`.
+    public var resolvedWorkspaceName: String?
+
     /// The agent tool that produced this hook payload.
     /// Set by the hooks CLI from the `--source` argument; absent from the JSON emitted by agents
     /// themselves but included on the Unix-socket wire so `BridgeServer.resolvedAgentTool` can
@@ -453,6 +461,7 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
         case terminalTTY = "terminal_tty"
         case terminalTitle = "terminal_title"
         case remote
+        case resolvedWorkspaceName = "resolved_workspace_name"
     }
 
     public init(
@@ -485,7 +494,8 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
         terminalSessionID: String? = nil,
         terminalTTY: String? = nil,
         terminalTitle: String? = nil,
-        remote: Bool? = nil
+        remote: Bool? = nil,
+        resolvedWorkspaceName: String? = nil
     ) {
         self.cwd = cwd
         self.hookEventName = hookEventName
@@ -517,6 +527,7 @@ public struct ClaudeHookPayload: Equatable, Codable, Sendable {
         self.terminalTTY = terminalTTY
         self.terminalTitle = terminalTitle
         self.remote = remote
+        self.resolvedWorkspaceName = resolvedWorkspaceName
     }
 }
 
@@ -713,7 +724,11 @@ public enum ClaudeHookOutputEncoder {
 
 public extension ClaudeHookPayload {
     var workspaceName: String {
-        WorkspaceNameResolver.workspaceName(for: cwd)
+        if let resolved = resolvedWorkspaceName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !resolved.isEmpty {
+            return resolved
+        }
+        return WorkspaceNameResolver.workspaceName(for: cwd)
     }
 
     var worktreeBranch: String? {
@@ -986,6 +1001,18 @@ public extension ClaudeHookPayload {
         if payload.terminalApp == "cmux" {
             if payload.terminalSessionID == nil {
                 payload.terminalSessionID = environment["CMUX_SURFACE_ID"]
+            }
+
+            // cmux lets the user manually name each workspace; that name is
+            // far better than the cwd basename. The cmux socket CLI is only
+            // reachable from this hook process (it runs inside the cmux
+            // workspace shell), so resolve it here and carry it across the
+            // bridge. Fail-open: any error/timeout leaves the cwd-basename
+            // fallback in place. Runs on every cmux hook so a later
+            // metadata sync never downgrades the name to the basename.
+            if payload.resolvedWorkspaceName == nil,
+               let title = Self.resolveCmuxWorkspaceTitle(cwd: payload.cwd, environment: environment) {
+                payload.resolvedWorkspaceName = title
             }
         }
 
@@ -1326,6 +1353,150 @@ public extension ClaudeHookPayload {
         }
 
         return output
+    }
+
+    // MARK: - cmux workspace name resolution
+
+    private static let cmuxAppBinaryPath = "/Applications/cmux.app/Contents/Resources/bin/cmux"
+
+    /// Runs the cmux socket CLI (fail-open, short timeout) and returns the
+    /// manually-set workspace title for this session, or nil if cmux is
+    /// unavailable, the session has no custom title, or anything errors.
+    static func resolveCmuxWorkspaceTitle(cwd: String, environment: [String: String]) -> String? {
+        guard let data = runCmuxWorkspaceList(environment: environment) else {
+            return nil
+        }
+        return cmuxCustomTitle(
+            fromJSON: data,
+            cwd: cwd,
+            workspaceID: environment["CMUX_WORKSPACE_ID"]
+        )
+    }
+
+    private static func runCmuxWorkspaceList(environment: [String: String]) -> Data? {
+        let arguments = ["workspace", "list", "--json", "--id-format", "uuids"]
+        let executableURL: URL
+        let fullArguments: [String]
+        if FileManager.default.isExecutableFile(atPath: cmuxAppBinaryPath) {
+            executableURL = URL(fileURLWithPath: cmuxAppBinaryPath)
+            fullArguments = arguments
+        } else {
+            // Fall back to PATH lookup via `env`; the hook shell running inside
+            // cmux usually has `cmux` on PATH.
+            executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            fullArguments = ["cmux"] + arguments
+        }
+
+        var processEnvironment = environment
+        // Silence the legacy-alias notice cmux otherwise prints to stdout.
+        processEnvironment["CMUX_QUIET"] = "1"
+
+        return runProcessForData(
+            executableURL: executableURL,
+            arguments: fullArguments,
+            environment: processEnvironment,
+            timeout: 1.0
+        )
+    }
+
+    /// Parses `cmux workspace list --json` output and returns the custom
+    /// title for the workspace matching this session. Pure and side-effect
+    /// free so it can be unit-tested against fixtures.
+    ///
+    /// Matching prefers the cmux workspace UUID (from `CMUX_WORKSPACE_ID`)
+    /// when it lines up with an entry's id/ref, and otherwise falls back to
+    /// comparing standardized working directories against `cwd`. A title is
+    /// only returned when the entry explicitly has `has_custom_title == true`.
+    static func cmuxCustomTitle(fromJSON data: Data, cwd: String, workspaceID: String?) -> String? {
+        guard let list = try? JSONDecoder().decode(CmuxWorkspaceList.self, from: data) else {
+            return nil
+        }
+
+        let entries = list.workspaces
+        let match: CmuxWorkspaceEntry?
+        if let workspaceID = workspaceID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !workspaceID.isEmpty,
+           let byID = entries.first(where: { $0.id == workspaceID || $0.ref == workspaceID }) {
+            match = byID
+        } else {
+            let target = standardizedPath(cwd)
+            match = entries.first { standardizedPath($0.currentDirectory) == target }
+        }
+
+        guard let match, match.hasCustomTitle == true,
+              let title = match.customTitle?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty else {
+            return nil
+        }
+        return title
+    }
+
+    private static func standardizedPath(_ path: String?) -> String? {
+        guard let path, !path.isEmpty else {
+            return nil
+        }
+        return URL(fileURLWithPath: path).standardizedFileURL.path
+    }
+
+    /// Runs a process and returns its stdout, killing it and returning nil if
+    /// it exceeds `timeout`. Fail-open: any launch error or non-zero exit
+    /// yields nil. The timeout bounds worst-case hook latency.
+    private static func runProcessForData(
+        executableURL: URL,
+        arguments: [String],
+        environment: [String: String],
+        timeout: TimeInterval
+    ) -> Data? {
+        let process = Process()
+        process.executableURL = executableURL
+        process.arguments = arguments
+        process.environment = environment
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = Pipe()
+
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning {
+            if Date() >= deadline {
+                process.terminate()
+                return nil
+            }
+            usleep(20_000)
+        }
+
+        guard process.terminationStatus == 0 else {
+            return nil
+        }
+
+        let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        return data.isEmpty ? nil : data
+    }
+}
+
+private struct CmuxWorkspaceList: Decodable {
+    let workspaces: [CmuxWorkspaceEntry]
+}
+
+private struct CmuxWorkspaceEntry: Decodable {
+    let currentDirectory: String?
+    let customTitle: String?
+    let hasCustomTitle: Bool?
+    let id: String?
+    let ref: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case currentDirectory = "current_directory"
+        case customTitle = "custom_title"
+        case hasCustomTitle = "has_custom_title"
+        case id
+        case ref
     }
 }
 
