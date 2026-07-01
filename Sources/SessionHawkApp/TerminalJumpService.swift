@@ -300,75 +300,29 @@ struct TerminalJumpService {
     }
 
     private func jumpToCmuxTerminal(_ target: JumpTarget) -> Bool {
-        // Try the cmux Unix socket API to focus a specific surface.
+        // Focus the exact cmux surface via the official CLI. It resolves the
+        // socket and handles auth for us, and returns non-zero if the focus
+        // fails. The old hand-rolled JSON-RPC guessed the protocol, ignored
+        // auth, and reported success even when nothing happened — so cmux
+        // came forward on whatever surface was last active, not the session's.
         guard let surfaceID = target.terminalSessionID,
               !surfaceID.isEmpty else {
-            // No surface ID — fall back to generic app activation.
+            // No surface ID — let the caller fall back to generic activation.
             return false
         }
 
-        guard let socketPath = Self.resolveCmuxSocketPath() else {
+        guard processRunner(Self.resolveCmuxBinary(), ["focus-panel", "--panel", surfaceID]) else {
             return false
         }
 
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
-        guard fd >= 0 else { return false }
-        defer { close(fd) }
-
-        var addr = sockaddr_un()
-        addr.sun_family = sa_family_t(AF_UNIX)
-        let pathBytes = socketPath.utf8CString
-        precondition(pathBytes.count <= MemoryLayout.size(ofValue: addr.sun_path))
-        withUnsafeMutableBytes(of: &addr.sun_path) { sunPath in
-            for (i, byte) in pathBytes.enumerated() {
-                sunPath[i] = UInt8(bitPattern: byte)
-            }
-        }
-
-        let connectResult = withUnsafePointer(to: &addr) { ptr in
-            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
-                Darwin.connect(fd, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
-        }
-        guard connectResult == 0 else { return false }
-
-        // Send JSON-RPC surface.focus request.
-        let request = #"{"jsonrpc":"2.0","method":"surface.focus","params":{"surface_id":"\#(surfaceID)"},"id":1}"# + "\n"
-        let sent = request.withCString { ptr in
-            Darwin.send(fd, ptr, strlen(ptr), 0)
-        }
-        guard sent > 0 else { return false }
-
-        // Best-effort: activate the cmux app window.
+        // The surface is now selected inside cmux; bring its window forward.
         try? openAction(["-b", "com.cmuxterm.app"])
-
         return true
     }
 
-    private static func resolveCmuxSocketPath() -> String? {
-        let fm = FileManager.default
-
-        // 1. cmux writes the active socket path here on startup.
-        if let redirected = try? String(contentsOfFile: "/tmp/cmux-last-socket-path", encoding: .utf8)
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !redirected.isEmpty,
-           fm.fileExists(atPath: redirected) {
-            return redirected
-        }
-
-        // 2. Standard Application Support location.
-        let appSupportPath = NSHomeDirectory() + "/Library/Application Support/cmux/cmux.sock"
-        if fm.fileExists(atPath: appSupportPath) {
-            return appSupportPath
-        }
-
-        // 3. Legacy fallback.
-        let legacyPath = "/tmp/cmux.sock"
-        if fm.fileExists(atPath: legacyPath) {
-            return legacyPath
-        }
-
-        return nil
+    private static func resolveCmuxBinary() -> String {
+        let bundled = "/Applications/cmux.app/Contents/Resources/bin/cmux"
+        return FileManager.default.isExecutableFile(atPath: bundled) ? bundled : "cmux"
     }
 
     // MARK: - Tmux CLI-based jump
