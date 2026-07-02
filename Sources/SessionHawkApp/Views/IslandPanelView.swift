@@ -635,7 +635,7 @@ struct IslandPanelView: View {
                                     ? { model.replyToSession(session, text: $0) } : nil,
                                 onJump: { model.jumpToSession(session) },
                                 onResume: { model.resumeSession(session) },
-                                onDismiss: session.isRemote ? { model.dismissSession(session.id) } : nil
+                                onDismiss: { model.dismissSession(session.id) }
                             )
                         }
                     }
@@ -686,7 +686,7 @@ struct IslandPanelView: View {
                             ? { model.replyToSession(session, text: $0) } : nil,
                         onJump: { model.jumpToSession(session) },
                         onResume: { model.resumeSession(session) },
-                        onDismiss: session.isRemote ? { model.dismissSession(session.id) } : nil
+                        onDismiss: { model.dismissSession(session.id) }
                     )
                 }
             }
