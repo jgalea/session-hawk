@@ -355,6 +355,10 @@ final class ProcessMonitoringCoordinator {
         session.tool == .claudeCode && session.id.hasPrefix(syntheticClaudeSessionPrefix)
     }
 
+    private func isCmuxSession(_ session: AgentSession) -> Bool {
+        supportedTerminalApp(for: session.jumpTarget?.terminalApp) == "cmux"
+    }
+
     // MARK: - Process matching
 
     private func representedClaudeProcessKeys(
@@ -447,13 +451,20 @@ final class ProcessMonitoringCoordinator {
             let processTTY = normalizedTTYForMatching(process.terminalTTY)
             // When matching by cwd alone, skip sessions whose TTY is known but
             // differs from the process — they belong to a different terminal and
-            // should not consume this process's slot.
+            // should not consume this process's slot. cmux is exempt: it runs
+            // Claude under a wrapper shim, so the tty cmux reported at hook time
+            // has no relation to the bare `claude` tty the scanner reads from
+            // `ps`. For cmux sessions we match on standardized cwd alone and rely
+            // on the uniqueness guard below to avoid over-merging.
             let candidates = claudeTrackedSessions(
                 in: sessions,
                 claimedSessionIDs: claimedSessionIDs,
                 terminalTTY: nil,
                 workingDirectory: workingDirectory
             ).filter { session in
+                if isCmuxSession(session) {
+                    return true
+                }
                 guard let sessionTTY = normalizedTTYForMatching(session.jumpTarget?.terminalTTY) else {
                     return true
                 }

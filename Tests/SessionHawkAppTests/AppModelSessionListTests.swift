@@ -994,6 +994,123 @@ struct AppModelSessionListTests {
         #expect(merged.map(\.id) == [existing.id])
     }
 
+    /// Regression: a cmux workspace runs Claude under a wrapper shim, so the tty
+    /// cmux reported at hook time differs from the bare `claude` process tty the
+    /// scanner reads from `ps`. The real session (with a known-but-different tty)
+    /// must still represent its live process; no synthetic duplicate should be
+    /// created for the same workspace.
+    @Test
+    func mergedWithSyntheticClaudeSessionsSkipsSyntheticForCmuxSessionWithMismatchedTTY() {
+        let now = Date(timeIntervalSince1970: 2_000)
+        let model = AppModel()
+        let existing = AgentSession(
+            id: "e45d5e87-66d0-4f67-8399-6ebc02f3d453",
+            title: "Claude · Lantana",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .running,
+            summary: "Running",
+            updatedAt: now,
+            jumpTarget: JumpTarget(
+                terminalApp: "cmux",
+                workspaceName: "Lantana",
+                paneTitle: "Claude Lantana",
+                workingDirectory: "/repos/lantana",
+                terminalWorkspaceID: "ws-lantana",
+                terminalTTY: "/dev/ttys005"
+            )
+        )
+
+        let merged = model.monitoring.mergedWithSyntheticClaudeSessions(
+            existingSessions: [existing],
+            activeProcesses: [
+                .init(
+                    tool: .claudeCode,
+                    sessionID: nil,
+                    workingDirectory: "/repos/lantana",
+                    terminalTTY: "/dev/ttys010",
+                    terminalApp: "cmux"
+                ),
+            ],
+            now: now
+        )
+
+        #expect(merged.map(\.id) == [existing.id])
+        #expect(merged.allSatisfy { !$0.id.hasPrefix("claude-process:") })
+    }
+
+    /// Two distinct cmux workspaces that happen to share a working directory must
+    /// not collapse: each live process is represented by its own real session and
+    /// no synthetic is fabricated. The cwd-relaxed matching must stay guarded so a
+    /// shared cwd across workspaces does not over-merge or drop a row.
+    @Test
+    func mergedWithSyntheticClaudeSessionsKeepsTwoCmuxWorkspacesSharingCWDDistinct() {
+        let now = Date(timeIntervalSince1970: 2_000)
+        let model = AppModel()
+        let workspaceA = AgentSession(
+            id: "aaaa1111-66d0-4f67-8399-6ebc02f3d453",
+            title: "Claude · Rosa (A)",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .running,
+            summary: "Running",
+            updatedAt: now,
+            jumpTarget: JumpTarget(
+                terminalApp: "cmux",
+                workspaceName: "Rosa A",
+                paneTitle: "Claude Rosa A",
+                workingDirectory: "/repos/shared",
+                terminalWorkspaceID: "ws-A",
+                terminalTTY: "/dev/ttys005"
+            )
+        )
+        let workspaceB = AgentSession(
+            id: "bbbb2222-c1f9-4e39-ab66-19edef0c2bc9",
+            title: "Claude · Rosa (B)",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .running,
+            summary: "Running",
+            updatedAt: now.addingTimeInterval(-30),
+            jumpTarget: JumpTarget(
+                terminalApp: "cmux",
+                workspaceName: "Rosa B",
+                paneTitle: "Claude Rosa B",
+                workingDirectory: "/repos/shared",
+                terminalWorkspaceID: "ws-B",
+                terminalTTY: "/dev/ttys006"
+            )
+        )
+
+        let merged = model.monitoring.mergedWithSyntheticClaudeSessions(
+            existingSessions: [workspaceA, workspaceB],
+            activeProcesses: [
+                .init(
+                    tool: .claudeCode,
+                    sessionID: nil,
+                    workingDirectory: "/repos/shared",
+                    terminalTTY: "/dev/ttys010",
+                    terminalApp: "cmux"
+                ),
+                .init(
+                    tool: .claudeCode,
+                    sessionID: nil,
+                    workingDirectory: "/repos/shared",
+                    terminalTTY: "/dev/ttys011",
+                    terminalApp: "cmux"
+                ),
+            ],
+            now: now
+        )
+
+        // Both real sessions survive and no synthetic is fabricated.
+        #expect(Set(merged.map(\.id)) == [workspaceA.id, workspaceB.id])
+        #expect(merged.allSatisfy { !$0.id.hasPrefix("claude-process:") })
+    }
+
 
     /// Regression test: `measuredNotificationContentHeight` MUST be cleared when the
     /// surface changes to a different session, to avoid sizing the new card with stale
